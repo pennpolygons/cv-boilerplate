@@ -17,3 +17,4 @@ This project is, at its essence, a collection of principled choices to make CV r
 - __Training / Evaluation Managment__: [PyTorch Ignite](https://pytorch.org/ignite/)
 - __Visualization__: [Visdom](https://github.com/facebookresearch/visdom)
 - __Typed Code__: [Types!](https://docs.python.org/3/library/typing.html)
+- __Version Control__: Git
