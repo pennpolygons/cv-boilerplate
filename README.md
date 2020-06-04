@@ -14,5 +14,6 @@ This project is, at its essence, a collection of principled choices to make CV r
 - __Python Formatting__: [Black](https://black.readthedocs.io/en/stable/)
 - __Configuration Management__: [Hydra](https://hydra.cc/)
 - __Machine Learning Framework__: [PyTorch](https://pytorch.org/)
+- __Training / Evaluation Managment__: [PyTorch Ignite](https://pytorch.org/ignite/)
 - __Visualization__: [Visdom](https://github.com/facebookresearch/visdom)
 - __Typed Code__: [Types!](https://docs.python.org/3/library/typing.html)
