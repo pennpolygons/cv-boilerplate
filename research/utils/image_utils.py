@@ -5,67 +5,69 @@ import numpy as np
 import os
 import pdb
 import PIL
-import plotly.graph_objects as go
 import torch
 import torchvision
+import typing
 
 
 from matplotlib.pyplot import imshow
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.cm import get_cmap
 from PIL import Image
-from plotly.subplots import make_subplots
 from torchvision import models, transforms
 from torch.nn import functional as F
 from torch import topk
 
 
-
-"""Read in image"""
-def read_img(current_img_path):
-
-    im = Image.open(current_img_path)
-
-    return im
-
-"""Resize the image correctly. Thanks to Jaakko Lehtinin for the tip."""
-def resample_lanczos(im, W, H):
-
-    '''Resize image to size (W, H).'''
+def resample_lanczos(im: PIL.Image, W: int, H: int) -> np.array:
+    """Resize the image correctly. Thanks to Jaakko Lehtinin for the tip."""
     new_size = (W,H)
     im = im.resize(new_size, Image.LANCZOS)
 
     return np.array(im)
 
-"""
-This function takes a channel-last numpy array and preprocceses it 
-so that it is normalized to ImageNet statistics. It returns the
-normalized numpy array channel-first. 
+def read_image_resize(current_img_path: str, resize=(0,0)) -> np.array:
+    """Input: path, tuple of resize shape (optional). Default will not resize
+    Output: numpy array of wxhxc, range of pixels from 0 to 1"""
+    im = Image.open(current_img_path)
 
-input: numpy  array of image, either bxwxhxc or wxhxc
-Output: numpy array of  either bxcxwxh or cxwxh"""
-def normalize_for_imagenet(original_img):
+    if resize[0] != 0:
+        img = resample_lanczos(im, resize[0], resize[1])
+    else:
+        print("WTF")
+        img = np.array(im)
 
-    img = np.float32(original_img) / 255
+    img  = np.float32(img) / 255
+    return img
+
+def normalize_for_imagenet(original_img: torch.Tensor) -> torch.Tensor:
+    """This function takes a channel-last numpy array and preprocceses it 
+    so that it is normalized to ImageNet statistics. It returns the
+    normalized numpy array channel-first. 
+
+    input: numpy  array of image, bxcxwxh
+    Output: numpy array of  either bxcxwxh  
+    """
+    
     means = [0.485, 0.456, 0.406]
     stds = [0.229, 0.224, 0.225]
-    preprocessed_img = img.copy()
 
+    preprocessed_img = original_img.clone()
+    
     if  len(original_img.shape) == 4:
+
         for i in range(3):
-            preprocessed_img[:,:, :, i] = preprocessed_img[:,:, :, i] - means[i]
-            preprocessed_img[:,:, :, i] = preprocessed_img[:,:, :, i] / stds[i]    
-        preprocessed_img = np.ascontiguousarray(np.transpose(preprocessed_img, (0,3, 1, 2)))
+            preprocessed_img[:,i, :, :] = preprocessed_img[:,i, :, :] - means[i]
+            preprocessed_img[:,i, :, :] = preprocessed_img[:,i, :, :] / stds[i]    
+    
     else:
-        for i in range(3):
-            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - means[i]
-            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / stds[i]    
-        preprocessed_img = np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
+        print("missing a dimension!")
     
     return preprocessed_img
 
-"""Takes in either tensor or numpy, returns channel first"""
+
 def convert_whc_to_cwh(img):
+    """Takes in either tensor or numpy, returns channel first of the same type as input (numpy/tensor)"""
 
     if torch.is_tensor(img):
         if len(img.shape) == 4:
@@ -80,9 +82,8 @@ def convert_whc_to_cwh(img):
     
     return preprocessed_img
 
-"""Takes in either tensor or numpy, returns channel last"""
 def convert_cwh_to_whc(img):
-
+    """Takes in either tensor or numpy, returns channel last of the same type as input (numpy/tensor)"""
     if torch.is_tensor(img):
         if len(img.shape) == 4:
             preprocessed_img = img.permute(0,2,3,1)
@@ -96,35 +97,34 @@ def convert_cwh_to_whc(img):
     
     return preprocessed_img
 
-"""
-This function takes a channel-first numpy array and inverse normalizes
-it back to its original statistics before processing.
 
-input: numpy  array of image, of cxwxh
-Output: numpy array of  cxwxh"""
-def inverse_imagenet_preprocess(img):
+def inverse_imagenet_preprocess(img: torch.Tensor) -> torch.Tensor:
+    """This function takes a channel-first numpy array and inverse normalizes
+    it back to its original statistics before processing.
+
+    input: numpy  array of image, of cxwxh
+    Output: numpy array of  cxwxh"""
     
     means = [0.485, 0.456, 0.406]
     stds = [0.229, 0.224, 0.225]
-
-    preprocessed_img = img.copy()
     
-    for i in range(3):
-        preprocessed_img[i, :, :] = preprocessed_img[i, :, :] * stds[i]
-        preprocessed_img[i, :, :] = preprocessed_img[i, :, :] + means[i]
+    if len(img.shape)==4:
+        for i in range(3):
+            img[:,i, :, :] = img[i, :, :] * stds[i]
+            img[:,i, :, :] = img[i, :, :] + means[i]
+        else:
+            print("missing a dimension")
     
-    return preprocessed_img
+    return img
 
-"""Creating the affine transformation matrix for function below
-Input: thedx = 1-d torch tensor
-thedy = 1-d torch tensor
-scale = 1-d torch tensor
-cuda =  boolean
 
-returns: 2x3 matrix """
-def create_M_matrix(thedx=None, thedy=None, scale=None, cuda=True):
-
-    """Retrieving the translation parameters and putting them into a 1xnx2x1 tensor."""
+def create_M_matrix(thedx=None, thedy=None, scale=None, cuda=True) -> torch.Tensor:
+    """Creating the affine transformation matrix for function below
+    Input: thedx = 1-d torch tensor
+    thedy = 1-d torch tensor of length n 
+    scale = 1-d torch tensor of length n
+    cuda =  boolean
+    returns: nx2x3 matrix """
 
     dxdy = torch.cat((thedx,thedy),dim=0).reshape((2,thedx.shape[0])).permute((1,0))
     dxdy_unsqueezed = torch.unsqueeze(dxdy,dim=2) #1xnx2x1
@@ -143,15 +143,11 @@ def create_M_matrix(thedx=None, thedy=None, scale=None, cuda=True):
 
     return affine_matrices
 
-#def check_transformation(affine_matrices, scale=True, translate=True, rotate=True):
-
-"""Input arguments:
-img: b x c x w x h tensor or c x w x h tensor
+def affine_transform(img: torch.Tensor,affine_matrices: torch.Tensor, scale=True, translate=True, rotate=True) -> torch.Tensor:
+    """Input arguments:
+    img: b x c x w x h tensor or c x w x h tensor
     affine_matrices: 2x3 tensor
-    Returns:
-transformed_img: bxcxwxh"""
-
-def affine_transform(img,affine_matrices, scale=True, translate=True, rotate=True):
+    Returns: transformed_img: bxcxwxh"""
 
     if len(img.shape)==3:
         img = torch.unsqueeze(img,dim=0)
@@ -163,16 +159,18 @@ def affine_transform(img,affine_matrices, scale=True, translate=True, rotate=Tru
 
 """Functions for low-pass filtering"""
 
-def scaleSpectrum(A):
+def make_gaussian_filter(num_rows: int, num_cols: int, sigma: torch.Tensor, cuda: bool, high_pass: bool)-> torch.Tensor:
+    """Inputs:
+    num_rows: scalar: the height of the image, now the size of the y dimension of the gaussian filter
+    num_cols: scalar: the widht of the image, now the size of the x dimension of the gaussian filter 
+    sigma: tensor of shape (n) the standard deviations to be used for both dimensions
+    cuda:  boolean
+    high_pass: boolean. If high_pass, invert the gaussian filter to do the opposite of low pass filter"""
 
-    return np.real(np.log10(np.absolute(A) + np.ones(A.shape)))
+    center_i = int(num_rows/2) + 1 if num_rows % 2 == 1 else int(num_rows/2)
+    center_j = int(num_cols/2) + 1 if num_cols % 2 == 1 else int(num_cols/2)
 
-def makeGaussianFilter(numRows, numCols, sigma, cuda, highPass):
-
-    centerI = int(numRows/2) + 1 if numRows % 2 == 1 else int(numRows/2)
-    centerJ = int(numCols/2) + 1 if numCols % 2 == 1 else int(numCols/2)
-
-    bb = torch.tensor(np.array([[-1.0 * ((i - centerI)**2 + (j - centerJ)**2) for j in range(numCols)] for i in range(numRows)]))
+    bb = torch.tensor(np.array([[-1.0 * ((i - center_i)**2 + (j - center_j)**2) for j in range(num_cols)] for i in range(num_rows)]))
     if cuda: 
         cc_seven = torch.cat(sigma.shape[0]*[torch.unsqueeze(bb,dim=0)], dim=0).type(torch.FloatTensor).cuda()
         divide = torch.tensor(2 * sigma**2)[:,None,None].cuda()
@@ -181,12 +179,18 @@ def makeGaussianFilter(numRows, numCols, sigma, cuda, highPass):
         cc_seven = torch.cat(sigma.shape[0]*[torch.unsqueeze(bb,dim=0)], dim=0).type(torch.FloatTensor)
         divide = torch.tensor(2 * sigma**2)[:,None,None]
     
-    vectorized = torch.exp(cc_seven / divide)
+    vectorized = torch.exp(cc_seven / divide.float())
 
     return vectorized
 
-def roll_n(X, axis, n):
-
+def roll_n(X: torch.Tensor, axis: int, n: int) -> torch.Tensor:
+    """Inputs:
+    X: tensor of shape nxhxw, this is the n different real components of the fourier transforms
+    of the image of size hxw
+    axis: axis
+    n: shift amount
+    """
+    
     f_idx = tuple(slice(None, None, None) if i != axis else slice(0, n, None) for i in range(X.dim()))
     b_idx = tuple(slice(None, None, None) if i != axis else slice(n, None, None) for i in range(X.dim()))
     front = X[f_idx]
@@ -194,9 +198,16 @@ def roll_n(X, axis, n):
 
     return torch.cat([back, front], axis)
 
-def batch_fftshift2d(x):
-
+def batch_fftshift2d(x: torch.Tensor) -> torch.Tensor:
+    """
+    This functions centers the 2d fourier transform.
+    Inputs:
+    x: tensor of shape nxhxwx2, this is the n different fourier transforms of the image of size hxw
+    Returns: shifted fft2d of nxhxwx2
+    """
+    
     real, imag = torch.unbind(x, -1)
+    
     for dim in range(1, len(real.size())):
         n_shift = real.size(dim)//2
         if real.size(dim) % 2 != 0:
@@ -206,8 +217,13 @@ def batch_fftshift2d(x):
 
     return torch.stack((real, imag), -1) 
 
-def batch_ifftshift2d(x):
-
+def batch_ifftshift2d(x: torch.Tensor) -> torch.Tensor:
+    """
+    This functions inverse centers the 2d fourier transform, aka brings it back to non-centered.
+    Inputs:
+    x: tensor of shape nxhxwx2, this is the n different center-shifted fourier transforms of the image of size hxw
+    Returns: un-shifted fft2d of nxhxwx2
+    """
     real, imag = torch.unbind(x, -1)
 
     for dim in range(len(real.size()) - 1, 0, -1):
@@ -216,62 +232,93 @@ def batch_ifftshift2d(x):
 
     return torch.stack((real, imag), -1)  
     
-def filterDFT(imageMatrix, filterMatrix, cuda):
+def filter_DFT(image_matrix: torch.Tensor, filter_matrix: torch.Tensor, cuda: bool) -> torch.Tensor:
+    """Inputs:
+    image_matrix: tensor of shape hxw, 1d image 
+    filter_matrix: tensor of shape nxhxw, this is n different hxw gaussian filters
+    cuda: boolean
+    Returns: tensor of shape nxhxw. This is the one channel image low-passed at those different thresholds"""
     
     if cuda:
-        theDFT = torch.rfft(imageMatrix.type(torch.cuda.FloatTensor).cuda(),2, onesided=False)
-        real_and_img_fft = batch_fftshift2d(torch.tensor(theDFT[None,:,:,:]))
-        filteredDFT_real = real_and_img_fft[:,:,:,0]* filterMatrix.type(torch.cuda.FloatTensor)
-        filteredDFT_img = real_and_img_fft[:,:,:,1]* filterMatrix.type(torch.cuda.FloatTensor)
+        the_DFT = torch.rfft(image_matrix.type(torch.cuda.FloatTensor).cuda(),2, onesided=False)
+        #pdb.set_trace()
+        real_and_img_fft = batch_fftshift2d(torch.tensor(the_DFT[None,:,:,:]))
+        filtered_DFT_real = real_and_img_fft[:,:,:,0]* filter_matrix.type(torch.cuda.FloatTensor)
+        filtered_DFT_img = real_and_img_fft[:,:,:,1]* filter_matrix.type(torch.cuda.FloatTensor)
     else:
-        theDFT = torch.rfft(imageMatrix.type(torch.FloatTensor),2, onesided=False)
-        real_and_img_fft = batch_fftshift2d(torch.tensor(theDFT[None,:,:,:]))
-        filteredDFT_real = real_and_img_fft[:,:,:,0]* filterMatrix.type(torch.FloatTensor)
-        filteredDFT_img = real_and_img_fft[:,:,:,1]* filterMatrix.type(torch.FloatTensor)
-    total = batch_ifftshift2d(torch.cat((filteredDFT_real[:,:,:,None], filteredDFT_img[:,:,:,None]),dim=3))
+        the_DFT = torch.rfft(image_matrix.type(torch.FloatTensor),2, onesided=False)
+        real_and_img_fft = batch_fftshift2d(torch.tensor(the_DFT[None,:,:,:]))
+        filtered_DFT_real = real_and_img_fft[:,:,:,0]* filter_matrix.type(torch.FloatTensor)
+        filtered_DFT_img = real_and_img_fft[:,:,:,1]* filter_matrix.type(torch.FloatTensor)
+    
+    total = batch_ifftshift2d(torch.cat((filtered_DFT_real[:,:,:,None], filtered_DFT_img[:,:,:,None]),dim=3))
     
     return torch.irfft(total,2,onesided=False) 
 
-def lowPass(imageMatrix, sigma, cuda):
+def low_pass(image_matrix: torch.Tensor, sigma: torch.Tensor, cuda: bool) -> torch.Tensor:
+    """Input:
+    image_matrix : one channel image, tensor of shape hxw. 
+    sigma: tensor of shape (n) of lowpass filtering thresholds
+    cuda: boolean
+    Returns: tensor of shape nxhxw. This is the one channel image low-passed at those different thresholds"""
+    n,m = image_matrix.shape
 
-    n,m = imageMatrix.shape
-
-    return filterDFT(imageMatrix, makeGaussianFilter(n, m, sigma, cuda, highPass=False), cuda)
+    return filter_DFT(image_matrix, make_gaussian_filter(n, m, sigma, cuda, high_pass=False), cuda)
    
-def lowPassedImage(lowFreqImg, sigmaLow,cuda):
+
+def low_passed_image(low_freq_img: torch.Tensor, sigma_low: torch.Tensor,cuda: bool) -> torch.Tensor:
+    """Inputs: 
+    lowFreqImg: tensor of shape (cxwxh)
+    sigmaLow: tensor of shape (n) of lowpass filtering thresholds
+    cuda: boolean
+    Returns: 
+    new: tensor of shape (nxcxwxh). This is the image lowpassed at 
+    the different thresholds """
     
     if cuda: 
-        new = torch.zeros((sigmaLow.shape[0],3,lowFreqImg.shape[1],lowFreqImg.shape[2])).cuda()
+        new = torch.zeros((sigma_low.shape[0],3,low_freq_img.shape[1],low_freq_img.shape[2])).cuda()
     else:
-        new = torch.zeros((sigmaLow.shape[0],3,lowFreqImg.shape[1],lowFreqImg.shape[2]))
+        new = torch.zeros((sigma_low.shape[0],3,low_freq_img.shape[1],low_freq_img.shape[2]))
     
     if cuda:
-        sigmaLow = sigmaLow.cuda()
+        sigma_low = sigma_low.cuda()
     
-    lowPassed_r = lowPass(lowFreqImg[0,:,:], sigmaLow, cuda)
-    lowPassed_g = lowPass(lowFreqImg[1,:,:], sigmaLow, cuda)
-    lowPassed_b = lowPass(lowFreqImg[2,:,:], sigmaLow, cuda)
+    low_passed_r = low_pass(low_freq_img[0,:,:], sigma_low, cuda)
+    low_passed_g = low_pass(low_freq_img[1,:,:], sigma_low, cuda)
+    low_passed_b = low_pass(low_freq_img[2,:,:], sigma_low, cuda)
     
-    new[:,0,:,:] = lowPassed_r
-    new[:,1,:,:] = lowPassed_g
-    new[:,2,:,:] = lowPassed_b
+    new[:,0,:,:] = low_passed_r
+    new[:,1,:,:] = low_passed_g
+    new[:,2,:,:] = low_passed_b
 
     return new
 
 if __name__ == "__main__":
 
     gpu = 0
-    img = read_img("../dummy_data/dog_boat_bird.png")
-    resized_img = resample_lanczos(img,224,224)
-    resized_img = np.float32(resized_img) / 255
+    img_resized = read_image_resize("../dummy_data/dog_boat_bird.png", (224,224))
+    img_resized = torch.tensor(convert_whc_to_cwh(img_resized)).cuda()
+    threshold = torch.tensor([10])
+    low_img = low_passed_image(img_resized, threshold, True)
+    
+    """
+    gpu = 0
+    img_resized = read_image_resize("../dummy_data/dog_boat_bird.png", (224,224))
+    img_resized = np.expand_dims(img_resized,axis=0)
+    img_resized = torch.tensor(convert_whc_to_cwh(img_resized)).cuda()
+    threshold = torch.tensor([10])
+    low_img = low_passed_image(img_resized, threshold, True)
+    img_resized_normal = normalize(img_resized)
+
     thedx = torch.tensor([1.0]).cuda()
     thedy = torch.tensor([1.0]).cuda()
     scale = torch.tensor([1.0]).cuda()
+
     the_matrix = create_M_matrix(thedx,thedy,scale)
-    resized_img = convert_whc_to_cwh(resized_img)
-    resized_img = torch.tensor(resized_img).cuda()
-    output = affine_transform(resized_img, the_matrix)
+    
+    output = affine_transform(img_resized, the_matrix)
+    
     current = convert_cwh_to_whc(output.detach().cpu().numpy())
-    plt.imsave("lol.png",current[0])
+    plt.imsave("lol.png",current[0])"""
 
 
