@@ -22,9 +22,9 @@ def create_supervised_trainer(cfg: DictConfig, device="cpu") -> Engine:
     # Optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
     # Loss
-    loss = torch.nn.NLLLoss()
+    loss_fn = torch.nn.NLLLoss()
 
-    metrics = {"accuracy": Accuracy(), "nll": Loss(loss)}
+    metrics = {"accuracy": Accuracy(), "nll": Loss(loss_fn)}
 
     def _update(engine, batch):
 
