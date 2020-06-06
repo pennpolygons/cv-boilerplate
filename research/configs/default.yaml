@@ -1,0 +1,11 @@
+defaults:
+  - backbone: vgg19
+
+mode:
+  train:
+    epochs: 100
+    shuffle: True
+  eval:
+    epochs: 1
+    shuffle: False
+

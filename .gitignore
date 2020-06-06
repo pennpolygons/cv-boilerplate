@@ -1,0 +1,110 @@
+# Hydra Experiment Logging
+outputs
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+
+# TensorFlow logs
+*.events
+
+# Sphinx documentation
+docs/_build/
+
+# IPython Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# pyenv
+.python-version
+
+# dotenv
+.env
+
+# virtualenv
+venv/
+ENV/
+
+# Spyder project settings
+.spyderproject
+
+# Rope project settings
+.ropeproject
+*.pkl
+
+# Numpy data
+*.npy
+*.npz
+
+# Development environment
+*.code-workspace
+*.vscode
+
+# Images, gifs, media (unless whitelisted)
+*.gif
+*.png
+*.tiff
+*.jpg
+*.mp4
+*.mov
+*.m4v
+*.avi
+
+# Binary Data
+*.h5
+
+# Bundles
+*.gz
+*.zip
+
+# Papers
+*.pdf
+*.pptx

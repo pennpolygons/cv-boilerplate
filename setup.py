@@ -11,14 +11,12 @@ DESCRIPTION = "My short description for my research project."
 URL = "https://github.com/pennpolygons/cv-boilerplate"
 EMAIL = "jane@institution.com"
 AUTHOR = "Jane Doe"
-REQUIRES_PYTHON = ">=3.7.0"
+REQUIRES_PYTHON = ">=3.8.0"
 VERSION = "0.1.0"
 PACKAGES = ["research"]
 
 # What packages are required for this module to be executed?
-REQUIRED = [
-    # 'requests', 'maya', 'records',
-]
+REQUIRED = ["hydra-core>=0.11.3", "omegaconf>=1.4.1"]
 
 # What packages are optional?
 EXTRAS = {
