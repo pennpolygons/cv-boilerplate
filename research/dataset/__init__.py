@@ -3,6 +3,7 @@ import torchvision
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from typing import Tuple
+from torchvision.transforms import Compose, ToTensor, Normalize
 
 
 def get_dataloaders(
@@ -13,14 +14,17 @@ def get_dataloaders(
     ##################################################################
     # Change this. Demo dataset is MNIST
     ##################################################################
-    dataset = torchvision.datasets.MNIST(cfg.dirs.data, download=True)
+    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+
+    dataset = torchvision.datasets.MNIST(
+        cfg.dirs.data, download=True, transform=data_transform
+    )
 
     train_dataloader = DataLoader(
         dataset,
         batch_size=cfg.mode.train.batch_size,
         shuffle=cfg.mode.train.shuffle,
         num_workers=num_workers,
-        worker_init_fn=lambda _: cfg.random_seed,
     )
 
     val_dataloader = DataLoader(
@@ -28,7 +32,6 @@ def get_dataloaders(
         batch_size=cfg.mode.val.batch_size,
         shuffle=cfg.mode.val.shuffle,
         num_workers=num_workers,
-        worker_init_fn=lambda _: cfg.random_seed,
     )
 
     return train_dataloader, val_dataloader

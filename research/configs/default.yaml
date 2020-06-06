@@ -5,11 +5,11 @@ random_seed: 26
 mode:
   train:
     batch_size: 64
-    epochs: 100
+    max_epochs: 3
     shuffle: True
   val:
     batch_size: 64
-    epochs: 1
+    max_epochs: 1
     shuffle: False
 
 # Directories
