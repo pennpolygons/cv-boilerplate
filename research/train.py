@@ -1,4 +1,5 @@
 import hydra
+import torch
 
 from omegaconf import DictConfig
 from ignite.engine import Events, Engine
@@ -6,6 +7,7 @@ from ignite.metrics import Accuracy, Loss
 
 from dataset import get_dataloaders
 from networks import get_network
+
 
 import pdb
 
@@ -24,7 +26,7 @@ def create_supervised_trainer(cfg: DictConfig, device=None) -> Engine:
     def _update(engine, batch):
 
         ########################################################################
-        # Modify the scientific business logic of your training loop
+        # Modify the logic of your training loop
         ########################################################################
 
         model.train()
@@ -54,7 +56,7 @@ def create_supervised_trainer(cfg: DictConfig, device=None) -> Engine:
 @hydra.main(config_path="configs/default.yaml")
 def train(cfg: DictConfig) -> None:
 
-    # Training loop Logic
+    # Training loop logic
     trainer = create_supervised_trainer(cfg, device=None)
 
     # Callbacks
@@ -63,7 +65,7 @@ def train(cfg: DictConfig) -> None:
     trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
     # train()
-    trainer.run(train_loader, max_epochs=config.train.max_epochs)
+    trainer.run(train_loader, max_epochs=cfg.mode.train.max_epochs)
 
 
 if __name__ == "__main__":
