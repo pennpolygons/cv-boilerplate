@@ -61,7 +61,7 @@ def train(cfg: DictConfig) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Data Loader
-    train_loader, val_loader = get_dataloaders(cfg)
+    train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
     # Training loop logic
     trainer = create_supervised_trainer(cfg, device=device)
