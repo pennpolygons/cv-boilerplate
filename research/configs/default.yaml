@@ -1,11 +1,20 @@
 defaults:
   - backbone: vgg19
 
+# Directories
+dirs:
+  data: ./data
+
+random_seed: 26
+data_loader_workers: 4
+
 mode:
   train:
-    epochs: 100
+    batch_size: 64
+    max_epochs: 3
     shuffle: True
-  eval:
-    epochs: 1
+  val:
+    batch_size: 64
+    max_epochs: 1
     shuffle: False
-
+    
