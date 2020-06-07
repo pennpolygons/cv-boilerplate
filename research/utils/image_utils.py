@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 plt.switch_backend("agg")
 import numpy as np
 import os
-import pdb
 import PIL
 import torch
 import torchvision
@@ -20,6 +19,10 @@ from torchvision import models, transforms
 from torch.nn import functional as F
 from torch import topk
 
+from typing import Union
+
+TENSOR_OR_ARRAY = Union[torch.Tensor, np.ndarray]
+
 
 def resample_lanczos(im: PIL.Image, W: int, H: int) -> np.ndarray:
     """Resize the image correctly. Thanks to Jaakko Lehtinin for the tip."""
@@ -29,7 +32,7 @@ def resample_lanczos(im: PIL.Image, W: int, H: int) -> np.ndarray:
     return np.array(im)
 
 
-def read_image_resize(current_img_path: str, resize=(0, 0)) -> np.array:
+def read_image_resize(current_img_path: str, resize=(0, 0)) -> np.ndarray:
     """Input: path, tuple of resize shape (optional). Default will not resize
     Output: numpy array of wxhxc, range of pixels from 0 to 1"""
     im = Image.open(current_img_path)
@@ -37,7 +40,6 @@ def read_image_resize(current_img_path: str, resize=(0, 0)) -> np.array:
     if resize[0] != 0:
         img = resample_lanczos(im, resize[0], resize[1])
     else:
-        print("WTF")
         img = np.array(im)
 
     img = np.float32(img) / 255
@@ -65,12 +67,12 @@ def normalize_for_imagenet(original_img: torch.Tensor) -> torch.Tensor:
             preprocessed_img[:, i, :, :] = preprocessed_img[:, i, :, :] / stds[i]
 
     else:
-        print("missing a dimension!")
+        raise ValueError("Input image missing a dimension!")
 
     return preprocessed_img
 
 
-def convert_whc_to_cwh(img):
+def convert_whc_to_cwh(img: TENSOR_OR_ARRAY) -> TENSOR_OR_ARRAY:
     """Takes in either tensor or numpy, returns channel first of the same type as input (numpy/tensor)"""
 
     if torch.is_tensor(img):
@@ -87,7 +89,7 @@ def convert_whc_to_cwh(img):
     return preprocessed_img
 
 
-def convert_cwh_to_whc(img):
+def convert_cwh_to_whc(img: TENSOR_OR_ARRAY) -> TENSOR_OR_ARRAY:
     """Takes in either tensor or numpy, returns channel last of the same type as input (numpy/tensor)"""
     if torch.is_tensor(img):
         if len(img.shape) == 4:
@@ -103,7 +105,7 @@ def convert_cwh_to_whc(img):
     return preprocessed_img
 
 
-def inverse_imagenet_preprocess(img: torch.Tensor) -> torch.Tensor:
+def inverse_imagenet_preprocess(img: np.ndarray) -> np.ndarray:
     """This function takes a channel-first numpy array and inverse normalizes
     it back to its original statistics before processing.
 
@@ -118,7 +120,7 @@ def inverse_imagenet_preprocess(img: torch.Tensor) -> torch.Tensor:
             img[:, i, :, :] = img[i, :, :] * stds[i]
             img[:, i, :, :] = img[i, :, :] + means[i]
         else:
-            print("missing a dimension")
+            raise ValueError("Input image missing a dimension!")
 
     return img
 
@@ -172,7 +174,9 @@ def affine_transform(
     return transformed_image
 
 
-"""Functions for low-pass filtering"""
+#################################################################################
+###                        Functions for low-pass filtering
+#################################################################################
 
 
 def make_gaussian_filter(
