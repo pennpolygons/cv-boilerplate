@@ -8,6 +8,7 @@ import PIL
 import torch
 import torchvision
 import typing
+import unittest
 
 
 from matplotlib.pyplot import imshow
@@ -19,7 +20,7 @@ from torch.nn import functional as F
 from torch import topk
 
 
-def resample_lanczos(im: PIL.Image, W: int, H: int) -> np.array:
+def resample_lanczos(im: PIL.Image, W: int, H: int) -> np.ndarray:
     """Resize the image correctly. Thanks to Jaakko Lehtinin for the tip."""
     new_size = (W,H)
     im = im.resize(new_size, Image.LANCZOS)
@@ -286,12 +287,14 @@ def low_passed_image(low_freq_img: torch.Tensor, sigma_low: torch.Tensor,cuda: b
     low_passed_r = low_pass(low_freq_img[0,:,:], sigma_low, cuda)
     low_passed_g = low_pass(low_freq_img[1,:,:], sigma_low, cuda)
     low_passed_b = low_pass(low_freq_img[2,:,:], sigma_low, cuda)
-    
+     
     new[:,0,:,:] = low_passed_r
     new[:,1,:,:] = low_passed_g
     new[:,2,:,:] = low_passed_b
 
     return new
+
+
 
 if __name__ == "__main__":
 
