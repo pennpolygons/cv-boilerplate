@@ -69,7 +69,7 @@ def train(cfg: DictConfig) -> None:
 
     # Callbacks
     trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, log_training_results)
+    # trainer.add_event_handler(Events.EPOCH_COMPLETED, log_training_results)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
     # train()

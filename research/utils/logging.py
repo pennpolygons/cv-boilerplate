@@ -1,8 +1,10 @@
 from ignite.engine import Engine
+import pdb
+
 
 # FIXME: Use logging module, not print statements
 def log_training_loss(engine: Engine) -> None:
-    print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, engine.state.output))
+    print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, engine.state.output[0]))
 
 
 # FIXME: Use logging module, not print statements
