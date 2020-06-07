@@ -3,6 +3,7 @@ Open source boilerplate for computer vision research
 
 ![License](https://img.shields.io/github/license/pennpolygons/cv-boilerplate)
 
+
 # Mission
 
 We believe that solving small problems related to project management, experiment management, code styling, and model training will benefit the community by making it easier to jump into research. 
