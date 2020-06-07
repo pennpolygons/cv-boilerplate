@@ -1,5 +1,4 @@
 from ignite.engine import Engine
-import pdb
 
 
 # FIXME: Use logging module, not print statements

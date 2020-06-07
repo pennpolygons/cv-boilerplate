@@ -10,8 +10,6 @@ from networks import get_network
 
 from utils.logging import log_training_loss, log_training_results
 
-import pdb
-
 
 def create_supervised_trainer(cfg: DictConfig, device="cpu") -> Engine:
 
@@ -59,6 +57,7 @@ def create_supervised_trainer(cfg: DictConfig, device="cpu") -> Engine:
 @hydra.main(config_path="configs/default.yaml")
 def train(cfg: DictConfig) -> None:
 
+    # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Data Loader

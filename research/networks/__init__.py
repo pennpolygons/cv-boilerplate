@@ -4,8 +4,6 @@ import torch.nn.functional as F
 
 from omegaconf import DictConfig
 
-import pdb
-
 
 class Net(nn.Module):
     def __init__(self):
