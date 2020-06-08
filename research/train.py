@@ -8,7 +8,7 @@ from ignite.metrics import Accuracy, Loss
 from dataset import get_dataloaders
 from networks import get_network
 
-from utils.logging import log_training_loss, log_training_results
+from utils.engine_logging import log_training_loss, log_training_results
 
 
 def create_supervised_trainer(cfg: DictConfig, device="cpu") -> Engine:
