@@ -134,7 +134,7 @@ def train(cfg: DictConfig) -> None:
         Events.ITERATION_COMPLETED, _lf(log_engine_output_stdout, ["nll", "nll"])
     )
 
-    # train()
+    # Execute training
     trainer.run(train_loader, max_epochs=cfg.mode.train.max_epochs)
 
 
