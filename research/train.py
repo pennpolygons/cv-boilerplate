@@ -1,6 +1,8 @@
 import hydra
 import torch
 
+import torch.nn as nn
+
 from omegaconf import DictConfig
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss
@@ -8,26 +10,31 @@ from ignite.metrics import Accuracy, Loss
 from dataset import get_dataloaders
 from networks import get_network
 
-from utils.engine_logging import log_training_loss, log_training_results
+from utils.logging import (
+    _lf,
+    _lf_val,
+    log_engine_metrics_stdout,
+    log_engine_output_stdout,
+)
 
 
-def create_supervised_trainer(cfg: DictConfig, device="cpu") -> Engine:
+def create_supervised_trainer(
+    model: nn.Module, cfg: DictConfig, device="cpu"
+) -> Engine:
 
     # Network
-    model = get_network(cfg)
     model.to(device)
 
     # Optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
+
     # Loss
     loss_fn = torch.nn.NLLLoss()
-
-    metrics = {"accuracy": Accuracy(), "nll": Loss(loss_fn)}
 
     def _update(engine, batch):
 
         ########################################################################
-        # Modify the logic of your training loop
+        # Modify the logic of your training
         ########################################################################
         model.train()
         optimizer.zero_grad()
@@ -37,18 +44,57 @@ def create_supervised_trainer(cfg: DictConfig, device="cpu") -> Engine:
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
-        return loss.item(), y_pred, y
 
-    def _metrics_transform(output):
-        return output[1], output[2]
+        # Anything you want to log must be returned in this dictionary
+        update_dict = {"nll": loss.item(), "y_pred": y_pred, "y": y}
+        return update_dict
 
     engine = Engine(_update)
 
-    for name, metric in metrics.items():
-        metric._output_transform = _metrics_transform
-        metric.attach(engine, name)
+    # Common metrics require base "y_pred" and "y". Lambda to reduce verbosity in metrics
+    _ypred_y = lambda _: (_["y_pred"], _["y"])
+
+    # (Optional) Specify training metrics. "output_transform" used to select items from "update_dict" needed by metrics
+    # Collecting metrics over training set is not recommended
+    # https://pytorch.org/ignite/metrics.html#ignite.metrics.Loss
 
     return engine
+
+
+def create_supervised_evaluator(
+    model: nn.Module, cfg: DictConfig, device="cpu"
+) -> Engine:
+
+    # Loss
+    loss_fn = torch.nn.NLLLoss()
+
+    def _inference(engine, batch):
+        model.eval()
+        with torch.no_grad():
+            x, y = batch
+            x, y = x.to(device), y.to(device)
+            y_pred = model(x)
+
+        # Anything you want to log must be returned in this dictionary
+        infer_dict = {"y_pred": y_pred, "y": y}
+        return infer_dict
+
+    evaluator = Engine(_inference)
+
+    # Common metrics require base "y_pred" and "y". Lambda to reduce verbosity in metrics
+    _ypred_y = lambda _: (_["y_pred"], _["y"])
+
+    # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
+    # https://pytorch.org/ignite/metrics.html#ignite.metrics.Loss
+    metrics = {
+        "accuracy": Accuracy(output_transform=_ypred_y),
+        "nll": Loss(loss_fn, output_transform=_ypred_y),
+    }
+
+    for name, metric in metrics.items():
+        metric.attach(evaluator, name)
+
+    return evaluator
 
 
 ########################################################################
@@ -60,18 +106,35 @@ def train(cfg: DictConfig) -> None:
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    # Model
+    model = get_network(cfg)
+
     # Data Loader
     train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
     # Training loop logic
-    trainer = create_supervised_trainer(cfg, device=device)
+    trainer = create_supervised_trainer(model, cfg, device=device)
 
+    # Evaluation loop logic
+    evaluator = create_supervised_evaluator(model, cfg, device=device)
+
+    ########################################################################
     # Callbacks
+    ########################################################################
     trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
-    # trainer.add_event_handler(Events.EPOCH_COMPLETED, log_training_results)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
-    # train()
+    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics.
+    trainer.add_event_handler(
+        Events.EPOCH_COMPLETED,
+        _lf_val(log_engine_metrics_stdout, evaluator, val_loader, ["accuracy", "nll"]),
+    )
+
+    # When batch completes, log train_engine nll output for batch.
+    trainer.add_event_handler(
+        Events.ITERATION_COMPLETED, _lf(log_engine_output_stdout, ["nll", "nll"])
+    )
+
+    # Execute training
     trainer.run(train_loader, max_epochs=cfg.mode.train.max_epochs)
 
 
