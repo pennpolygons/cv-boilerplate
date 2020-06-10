@@ -13,9 +13,8 @@ from networks import get_network
 from utils.engine_logging import (
     _lf,
     _lf_val,
-    log_engine_metrics_stdout,
-    log_engine_output_stdout,
-    log_engine_metrics_file,
+    log_engine_output,
+    log_engine_metrics,
 )
 
 
@@ -125,18 +124,18 @@ def train(cfg: DictConfig) -> None:
     ########################################################################
     # Callbacks
     ########################################################################
-    trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
 
-    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics.
+    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED,
-        _lf_val(log_engine_metrics_file, evaluator, val_loader, ["accuracy", "nll"]),
+        _lf_val(
+            log_engine_metrics, evaluator, val_loader, ["accuracy", "nll"], stdout=True
+        ),
     )
 
     # When batch completes, log train_engine nll output for batch.
     trainer.add_event_handler(
-        Events.ITERATION_COMPLETED(every=50),
-        _lf(log_engine_output_stdout, ["nll", "nll"]),
+        Events.ITERATION_COMPLETED(every=50), _lf(log_engine_output, ["nll", "nll"]),
     )
 
     # Execute training

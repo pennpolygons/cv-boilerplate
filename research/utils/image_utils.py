@@ -293,7 +293,7 @@ def filter_DFT(
         the_DFT = torch.rfft(
             image_matrix.type(torch.cuda.FloatTensor).cuda(), 2, onesided=False
         )
-        # pdb.set_trace()
+
         real_and_img_fft = batch_fftshift2d(torch.tensor(the_DFT[None, :, :, :]))
         filtered_DFT_real = real_and_img_fft[:, :, :, 0] * filter_matrix.type(
             torch.cuda.FloatTensor
