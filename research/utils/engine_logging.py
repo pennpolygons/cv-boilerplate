@@ -42,5 +42,21 @@ def log_engine_metrics_stdout(
     print("Epoch[{}] {}".format(train_engine.state.epoch, log_str))
 
 
+def log_engine_metrics_file(
+    train_engine: Engine, eval_engine: Engine, loader: DataLoader, fields: List[str]
+) -> None:
+
+    """Run eval_engine on Dataloader. Then log numerical fields in the engine metrics dictionary to stdout"""
+    eval_engine.run(loader)
+    metrics = eval_engine.state.metrics
+    log_str = "  ".join(
+        [
+            "{}: {:.2f}".format(field, eval_engine.state.metrics[field])
+            for field in fields
+        ]
+    )
+    eval_engine.logger.info(log_str)
+
+
 # TODO: Add Visdom logging callbacks
 # TODO: Add Slack notification callback
