@@ -7,7 +7,6 @@ dirs:
 
 random_seed: 26
 data_loader_workers: 4
-
 mode:
   train:
     batch_size: 64
@@ -17,4 +16,5 @@ mode:
     batch_size: 64
     max_epochs: 1
     shuffle: False
-    
+
+# TODO: Copy in Slack API key using hydra ... copy_env

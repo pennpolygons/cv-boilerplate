@@ -2,7 +2,6 @@ import hydra
 import torch
 
 import torch.nn as nn
-
 from omegaconf import DictConfig
 from ignite.utils import setup_logger
 from ignite.engine import Events, Engine
