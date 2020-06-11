@@ -129,7 +129,7 @@ def train(cfg: DictConfig) -> None:
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED,
         _lf_val(
-            log_engine_metrics, evaluator, val_loader, ["accuracy", "nll"], stdout=True
+            log_engine_metrics, evaluator, val_loader, ["accuracy", "nll"], stdout=True,
         ),
     )
 
