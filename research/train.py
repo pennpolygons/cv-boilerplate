@@ -1,7 +1,7 @@
 import hydra
 import torch
-
 import torch.nn as nn
+
 from omegaconf import DictConfig
 from ignite.utils import setup_logger
 from ignite.engine import Events, Engine
@@ -15,7 +15,12 @@ from utils.engine_logging import (
     _lf_val,
     log_engine_output,
     log_engine_metrics,
+    LOG_MODE,
 )
+
+
+def add_file_pointers_dict(engine: Engine) -> None:
+    engine.state.fp = {}
 
 
 def create_supervised_trainer(
@@ -125,6 +130,9 @@ def train(cfg: DictConfig) -> None:
     # Callbacks
     ########################################################################
 
+    #!!!! Required. Do not change. !!!!#
+    trainer.add_event_handler(Events.STARTED, add_file_pointers_dict)
+
     # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED,
@@ -135,7 +143,16 @@ def train(cfg: DictConfig) -> None:
 
     # When batch completes, log train_engine nll output for batch.
     trainer.add_event_handler(
-        Events.ITERATION_COMPLETED(every=50), _lf(log_engine_output, ["nll", "nll"]),
+        Events.ITERATION_COMPLETED(every=50),
+        _lf(
+            log_engine_output,
+            {
+                LOG_MODE.STDOUT: ["nll", "nll"],  # Log fields to stdout
+                LOG_MODE.VISDOM_NUM: ["nll"],  # Log fields to visdom
+                LOG_MODE.LOG_MSG: ["nll"],  # Log fields as message in logfile
+                LOG_MODE.LOG_FIL: ["nll"],  # Log fields as separate files
+            },
+        ),
     )
 
     # Execute training
