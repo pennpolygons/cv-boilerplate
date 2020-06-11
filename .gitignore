@@ -1,6 +1,9 @@
 # Hydra Experiment Logging
 outputs
 
+# data
+data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

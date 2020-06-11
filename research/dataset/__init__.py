@@ -1,3 +1,4 @@
+import os
 import torchvision
 
 from omegaconf import DictConfig
@@ -17,7 +18,9 @@ def get_dataloaders(
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     dataset = torchvision.datasets.MNIST(
-        cfg.dirs.data, download=True, transform=data_transform
+        os.path.join(os.environ["ORIG_CWD"], cfg.dirs.data),
+        download=True,
+        transform=data_transform,
     )
 
     train_dataloader = DataLoader(

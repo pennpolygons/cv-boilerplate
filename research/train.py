@@ -2,19 +2,19 @@ import hydra
 import torch
 
 import torch.nn as nn
-
 from omegaconf import DictConfig
+from ignite.utils import setup_logger
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss
 
 from dataset import get_dataloaders
 from networks import get_network
 
-from utils.logging import (
+from utils.engine_logging import (
     _lf,
     _lf_val,
-    log_engine_metrics_stdout,
-    log_engine_output_stdout,
+    log_engine_output,
+    log_engine_metrics,
 )
 
 
@@ -118,20 +118,24 @@ def train(cfg: DictConfig) -> None:
     # Evaluation loop logic
     evaluator = create_supervised_evaluator(model, cfg, device=device)
 
+    trainer.logger = setup_logger("trainer")
+    evaluator.logger = setup_logger("evaluator")
+
     ########################################################################
     # Callbacks
     ########################################################################
-    trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
 
-    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics.
+    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED,
-        _lf_val(log_engine_metrics_stdout, evaluator, val_loader, ["accuracy", "nll"]),
+        _lf_val(
+            log_engine_metrics, evaluator, val_loader, ["accuracy", "nll"], stdout=True,
+        ),
     )
 
     # When batch completes, log train_engine nll output for batch.
     trainer.add_event_handler(
-        Events.ITERATION_COMPLETED, _lf(log_engine_output_stdout, ["nll", "nll"])
+        Events.ITERATION_COMPLETED(every=50), _lf(log_engine_output, ["nll", "nll"]),
     )
 
     # Execute training
