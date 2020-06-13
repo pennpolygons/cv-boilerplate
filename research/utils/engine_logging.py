@@ -3,13 +3,13 @@ from enum import Enum
 from typing import Callable, List, Dict
 from ignite.engine import Engine
 from torch.utils.data import DataLoader
-from utils.log_modes import LOG_MODE
+from utils.log_operations import LOG_OP
 from utils.helpers import tern
 
 
 def _lf(
     log_fn: Callable[[Engine, List[str]], None],
-    fields: Dict[LOG_MODE, List[str]],
+    fields: Dict[LOG_OP, List[str]],
     **kwargs
 ):
     """Returns a log function lambda. Useful for code clarity"""
@@ -20,7 +20,7 @@ def _lf_val(
     log_fn: Callable[[Engine, List[str]], None],
     val_engine: Engine,
     loader: DataLoader,
-    fields: Dict[LOG_MODE, List[str]],
+    fields: Dict[LOG_OP, List[str]],
     **kwargs
 ):
     """Returns a log function lambda. Useful for code clarity"""
@@ -30,7 +30,7 @@ def _lf_val(
 
 
 def log_engine_output(
-    engine: Engine, fields: Dict[LOG_MODE, List[str]], epoch_num=None
+    engine: Engine, fields: Dict[LOG_OP, List[str]], epoch_num=None
 ) -> None:
     """Log numerical fields in the engine output dictionary to stdout"""
     for mode in fields.keys():

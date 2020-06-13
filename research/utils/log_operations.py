@@ -76,18 +76,21 @@ def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
         )
 
 
-class LOG_MODE(Enum):
+class LOG_OP(Enum):
     """Enum wrapper around logging modes"""
 
     # Log to standard out (print())
-    STDOUT = _to_stdout
+    PRINT = _to_stdout
     # Log as message in log file
-    LOG_MSG = _to_log
+    LOG_MESSAGE = _to_log
     # Log to separate file
-    LOG_FIL = _to_file
+    SAVE_IN_DATA_FILE = _to_file
     # Log image to standalone folder
-    LOG_IMG = _to_img
+    SAVE_IMAGE = _to_img
+
+    # TODO: Add logging operations for Visdom
+
     # Log to visdom
-    VISDOM_NUM = 4
+    # NUMBER_TO_VISDOM = ...
     # Log image to visdom
-    VISDOM_IMG = 5
+    # IMAGE_TO_VISDOM = ....

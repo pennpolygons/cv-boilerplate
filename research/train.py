@@ -19,7 +19,7 @@ from utils.engine_logging import (
     _lf_val,
     log_engine_output,
     log_engine_metrics,
-    LOG_MODE,
+    LOG_OP,
 )
 
 
@@ -139,9 +139,9 @@ def train(cfg: DictConfig) -> None:
         _lf(
             log_engine_output,
             {
-                LOG_MODE.LOG_IMG: ["im"],
-                LOG_MODE.LOG_MSG: ["nll"],  # Log fields as message in logfile
-                LOG_MODE.LOG_FIL: ["nll"],  # Log fields as separate files
+                LOG_OP.SAVE_IMAGE: ["im"],
+                LOG_OP.LOG_MESSAGE: ["nll"],  # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate files
             },
         ),
     )
@@ -154,9 +154,9 @@ def train(cfg: DictConfig) -> None:
             evaluator,
             val_loader,
             {
-                # LOG_MODE.STDOUT: ["accuracy"],
-                LOG_MODE.LOG_MSG: ["nll", "accuracy"],
-                LOG_MODE.LOG_FIL: ["accuracy"],
+                # LOG_OP.PRINT: ["accuracy"],
+                LOG_OP.LOG_MESSAGE: ["nll", "accuracy"],
+                LOG_OP.SAVE_IN_DATA_FILE: ["accuracy"],
             },
         ),
     )
