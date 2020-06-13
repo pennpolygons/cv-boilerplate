@@ -1,3 +1,5 @@
+
+import logging
 import hydra
 import torch
 import torch.nn as nn
@@ -107,7 +109,7 @@ def create_supervised_evaluator(
 ########################################################################
 @hydra.main(config_path="configs/default.yaml")
 def train(cfg: DictConfig) -> None:
-
+    import pdb; pdb.set_trace()
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -132,14 +134,7 @@ def train(cfg: DictConfig) -> None:
 
     #!!!! Required. Do not change. !!!!#
     trainer.add_event_handler(Events.STARTED, add_file_pointers_dict)
-
-    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
-    trainer.add_event_handler(
-        Events.EPOCH_COMPLETED,
-        _lf_val(
-            log_engine_metrics, evaluator, val_loader, ["accuracy", "nll"], stdout=True,
-        ),
-    )
+    evaluator.add_event_handler(Events.STARTED, add_file_pointers_dict)
 
     # When batch completes, log train_engine nll output for batch.
     trainer.add_event_handler(
@@ -147,10 +142,24 @@ def train(cfg: DictConfig) -> None:
         _lf(
             log_engine_output,
             {
-                LOG_MODE.STDOUT: ["nll", "nll"],  # Log fields to stdout
-                LOG_MODE.VISDOM_NUM: ["nll"],  # Log fields to visdom
+                # LOG_MODE.STDOUT: ["nll", "nll"],  # Log fields to stdout
                 LOG_MODE.LOG_MSG: ["nll"],  # Log fields as message in logfile
                 LOG_MODE.LOG_FIL: ["nll"],  # Log fields as separate files
+            },
+        ),
+    )
+
+    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
+    trainer.add_event_handler(
+        Events.EPOCH_COMPLETED,
+        _lf_val(
+            log_engine_metrics,
+            evaluator,
+            val_loader,
+            {
+                # LOG_MODE.STDOUT: ["accuracy"],
+                LOG_MODE.LOG_MSG: ["nll", "accuracy"],
+                LOG_MODE.LOG_FIL: ["accuracy"],
             },
         ),
     )
