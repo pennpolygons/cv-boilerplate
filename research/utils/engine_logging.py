@@ -33,7 +33,6 @@ def log_engine_output(
     engine: Engine, fields: Dict[LOG_MODE, List[str]], epoch_num=None
 ) -> None:
     """Log numerical fields in the engine output dictionary to stdout"""
-    pdb.set_trace()
     for mode in fields.keys():
         mode(engine, fields[mode], "output")
 

@@ -16,7 +16,12 @@ VERSION = "0.1.0"
 PACKAGES = ["research"]
 
 # What packages are required for this module to be executed?
-REQUIRED = ["hydra-core>=0.11.3", "omegaconf>=1.4.1"]
+REQUIRED = [
+    "hydra-core>=0.11.3",
+    "omegaconf>=1.4.1",
+    "opencv-python>=4.2.0",
+    "matplotlib>=3.2.1",
+]
 
 # What packages are optional?
 EXTRAS = {

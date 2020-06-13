@@ -12,6 +12,8 @@ from ignite.metrics import Accuracy, Loss
 from dataset import get_dataloaders
 from networks import get_network
 
+from utils.image_utils import inverse_mnist_preprocess
+
 from utils.engine_logging import (
     _lf,
     _lf_val,
@@ -25,7 +27,7 @@ def add_file_pointers_dict(engine: Engine) -> None:
     engine.state.fp = {}
 
 
-def create_supervised_trainer(
+def create_training_loop(
     model: nn.Module, cfg: DictConfig, device="cpu"
 ) -> Engine:
 
@@ -53,13 +55,10 @@ def create_supervised_trainer(
         optimizer.step()
 
         # Anything you want to log must be returned in this dictionary
-        update_dict = {"nll": loss.item(), "y_pred": y_pred, "y": y}
+        update_dict = {"nll": loss.item(), "y_pred": y_pred, "y": y, "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()}
         return update_dict
 
     engine = Engine(_update)
-
-    # Common metrics require base "y_pred" and "y". Lambda to reduce verbosity in metrics
-    _ypred_y = lambda _: (_["y_pred"], _["y"])
 
     # (Optional) Specify training metrics. "output_transform" used to select items from "update_dict" needed by metrics
     # Collecting metrics over training set is not recommended
@@ -68,7 +67,7 @@ def create_supervised_trainer(
     return engine
 
 
-def create_supervised_evaluator(
+def create_evaluation_loop(
     model: nn.Module, cfg: DictConfig, device="cpu"
 ) -> Engine:
 
@@ -88,14 +87,12 @@ def create_supervised_evaluator(
 
     evaluator = Engine(_inference)
 
-    # Common metrics require base "y_pred" and "y". Lambda to reduce verbosity in metrics
-    _ypred_y = lambda _: (_["y_pred"], _["y"])
-
     # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
-    # https://pytorch.org/ignite/metrics.html#ignite.metrics.Loss
+    # https://pytorch.org/ignite/metrics.html#ignite.metrics.
+    get_ypred_and_y = lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])
     metrics = {
-        "accuracy": Accuracy(output_transform=_ypred_y),
-        "nll": Loss(loss_fn, output_transform=_ypred_y),
+        "accuracy": Accuracy(output_transform=get_ypred_and_y),
+        "nll": Loss(loss_fn, output_transform=get_ypred_and_y),
     }
 
     for name, metric in metrics.items():
@@ -109,7 +106,7 @@ def create_supervised_evaluator(
 ########################################################################
 @hydra.main(config_path="configs/default.yaml")
 def train(cfg: DictConfig) -> None:
-    import pdb; pdb.set_trace()
+
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -120,10 +117,10 @@ def train(cfg: DictConfig) -> None:
     train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
     # Training loop logic
-    trainer = create_supervised_trainer(model, cfg, device=device)
+    trainer = create_training_loop(model, cfg, device=device)
 
     # Evaluation loop logic
-    evaluator = create_supervised_evaluator(model, cfg, device=device)
+    evaluator = create_evaluation_loop(model, cfg, device=device)
 
     trainer.logger = setup_logger("trainer")
     evaluator.logger = setup_logger("evaluator")
@@ -142,7 +139,7 @@ def train(cfg: DictConfig) -> None:
         _lf(
             log_engine_output,
             {
-                # LOG_MODE.STDOUT: ["nll", "nll"],  # Log fields to stdout
+                LOG_MODE.LOG_IMG: ["im"],
                 LOG_MODE.LOG_MSG: ["nll"],  # Log fields as message in logfile
                 LOG_MODE.LOG_FIL: ["nll"],  # Log fields as separate files
             },
