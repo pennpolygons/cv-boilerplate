@@ -15,15 +15,15 @@ from networks import get_network
 from utils.image_utils import inverse_mnist_preprocess
 
 from utils.engine_logging import (
-    _lf,
-    _lf_val,
+    _lf_one,
+    _lf_two,
     log_engine_output,
     log_engine_metrics,
     LOG_OP,
 )
 
 
-def add_file_pointers_dict(engine: Engine) -> None:
+def setup_file_pointers(engine: Engine) -> None:
     engine.state.fp = {}
 
 
@@ -55,7 +55,13 @@ def create_training_loop(
         optimizer.step()
 
         # Anything you want to log must be returned in this dictionary
-        update_dict = {"nll": loss.item(), "y_pred": y_pred, "y": y, "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()}
+        update_dict = {
+            "nll": loss.item(),
+            "y_pred": y_pred,
+            "y": y,
+            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()
+        }
+
         return update_dict
 
     engine = Engine(_update)
@@ -118,45 +124,45 @@ def train(cfg: DictConfig) -> None:
 
     # Training loop logic
     trainer = create_training_loop(model, cfg, device=device)
-
+    trainer.logger = setup_logger(name="trainer")
+    
     # Evaluation loop logic
     evaluator = create_evaluation_loop(model, cfg, device=device)
-
-    trainer.logger = setup_logger("trainer")
-    evaluator.logger = setup_logger("evaluator")
-
+    evaluator.logger = setup_logger(name="evaluator")
+    
     ########################################################################
     # Callbacks
     ########################################################################
 
     #!!!! Required. Do not change. !!!!#
-    trainer.add_event_handler(Events.STARTED, add_file_pointers_dict)
-    evaluator.add_event_handler(Events.STARTED, add_file_pointers_dict)
+    trainer.add_event_handler(Events.STARTED, setup_file_pointers)
+    evaluator.add_event_handler(Events.STARTED, setup_file_pointers)
 
-    # When batch completes, log train_engine nll output for batch.
+    # Perform various log operations on the "trainer" engine output every 50 iterations
     trainer.add_event_handler(
         Events.ITERATION_COMPLETED(every=50),
-        _lf(
+        # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
+        _lf_one(
             log_engine_output,
             {
-                LOG_OP.SAVE_IMAGE: ["im"],
-                LOG_OP.LOG_MESSAGE: ["nll"],  # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate files
+                LOG_OP.SAVE_IMAGE: ["im"],          # Save image to folder
+                LOG_OP.LOG_MESSAGE: ["nll"],        # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate data files
             },
         ),
     )
 
-    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
+    # Perform various log operations on metrics collected in the "evaluator" engine output every epoch
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED,
-        _lf_val(
+        # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "log_engine_metrics"
+        _lf_two(
             log_engine_metrics,
             evaluator,
             val_loader,
             {
-                # LOG_OP.PRINT: ["accuracy"],
-                LOG_OP.LOG_MESSAGE: ["nll", "accuracy"],
-                LOG_OP.SAVE_IN_DATA_FILE: ["accuracy"],
+                LOG_OP.LOG_MESSAGE: ["nll", "accuracy"],    # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["accuracy"],     # Log fields as separate data files
             },
         ),
     )

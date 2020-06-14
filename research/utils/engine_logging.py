@@ -7,23 +7,23 @@ from utils.log_operations import LOG_OP
 from utils.helpers import tern
 
 
-def _lf(
+def _lf_one(
     log_fn: Callable[[Engine, List[str]], None],
     fields: Dict[LOG_OP, List[str]],
     **kwargs
 ):
-    """Returns a log function lambda. Useful for code clarity"""
+    """Returns a lambda allowing custom log function for one engine (i.e. the training loop engine)"""
     return lambda engine: log_fn(engine, fields, epoch_num=engine.state.epoch, **kwargs)
 
 
-def _lf_val(
+def _lf_two(
     log_fn: Callable[[Engine, List[str]], None],
     val_engine: Engine,
     loader: DataLoader,
     fields: Dict[LOG_OP, List[str]],
     **kwargs
 ):
-    """Returns a log function lambda. Useful for code clarity"""
+    """Returns a lambda allowing custom log function for two engines (i.e. the training loop and validation engines)"""
     return lambda train_engine: log_fn(
         val_engine, loader, fields, epoch_num=train_engine.state.epoch, **kwargs
     )
