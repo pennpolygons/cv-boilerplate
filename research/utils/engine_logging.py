@@ -12,20 +12,20 @@ def _lf_one(
     fields: Dict[LOG_OP, List[str]],
     **kwargs
 ):
-    """Returns a lambda allowing custom log function for one engine (i.e. the training loop engine)"""
+    """Returns a lambda calling custom log function with one engine (e.g. the training loop)"""
     return lambda engine: log_fn(engine, fields, epoch_num=engine.state.epoch, **kwargs)
 
 
 def _lf_two(
     log_fn: Callable[[Engine, List[str]], None],
-    val_engine: Engine,
+    inner_engine: Engine,
     loader: DataLoader,
     fields: Dict[LOG_OP, List[str]],
     **kwargs
 ):
-    """Returns a lambda allowing custom log function for two engines (i.e. the training loop and validation engines)"""
-    return lambda train_engine: log_fn(
-        val_engine, loader, fields, epoch_num=train_engine.state.epoch, **kwargs
+    """Returns a lambda calling custom log function with two engines (e.g. the training loop and validation loop)"""
+    return lambda outer_engine: log_fn(
+        inner_engine, loader, fields, epoch_num=outer_engine.state.epoch, **kwargs
     )
 
 
@@ -37,7 +37,7 @@ def log_engine_output(
         mode(engine, fields[mode], "output")
 
 
-def log_engine_metrics(
+def run_engine_and_log_metrics(
     engine: Engine, loader: DataLoader, fields: List[str], epoch_num=None,
 ) -> None:
 

@@ -1,6 +1,7 @@
 import logging
 import struct, pdb, os
 import numpy as np
+import torch
 
 from PIL import Image
 from enum import Enum
@@ -45,11 +46,10 @@ def _to_log(
 
 
 def _to_file(engine: Engine, fields: List[str], engine_attr: str) -> None:
-    """Logs formatted engine output fields to separate file (binary)"""
+    """Save engine output fields as separate binary data files"""
     value_dict = getattr(engine.state, engine_attr)
 
     for field in fields:
-        # TODO: Should be done exactly once at engine startup
         if not field in engine.state.fp:
             engine.state.fp[field] = open("{}.pt".format(field), "wb+")
 
@@ -57,17 +57,22 @@ def _to_file(engine: Engine, fields: List[str], engine_attr: str) -> None:
 
 
 def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
-    """Logs formatted engine output fields to separate file (binary)"""
+    """Save engine output fields as images"""
     value_dict = getattr(engine.state, engine_attr)
 
     for field in fields:
-        # TODO: Should be done exactly once at engine startup
-        if not os.path.exists(field):
-            os.mkdir(field)
 
-        im = Image.fromarray(value_dict[field].numpy().astype(np.uint8))
+        if not os.path.exists(os.path.join(engine.logger.name, field)):
+            os.makedirs(os.path.join(engine.logger.name, field))
+
+        if torch.is_tensor(value_dict[field]):
+            im = Image.fromarray(value_dict[field].numpy().astype(np.uint8))
+        else:
+            im = Image.fromarray(value_dict[field].astype(np.uint8))
+
         im.save(
             os.path.join(
+                engine.logger.name,
                 field,
                 "{:03d}_{:06d}_{}.png".format(
                     engine.state.epoch, engine.state.iteration, field

@@ -18,7 +18,7 @@ from utils.engine_logging import (
     _lf_one,
     _lf_two,
     log_engine_output,
-    log_engine_metrics,
+    run_engine_and_log_metrics,
     LOG_OP,
 )
 
@@ -88,17 +88,20 @@ def create_evaluation_loop(
             y_pred = model(x)
 
         # Anything you want to log must be returned in this dictionary
-        infer_dict = {"y_pred": y_pred, "y": y}
+        infer_dict = {
+            "y_pred": y_pred,
+            "y": y
+        }
+
         return infer_dict
 
     evaluator = Engine(_inference)
 
     # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
     # https://pytorch.org/ignite/metrics.html#ignite.metrics.
-    get_ypred_and_y = lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])
     metrics = {
-        "accuracy": Accuracy(output_transform=get_ypred_and_y),
-        "nll": Loss(loss_fn, output_transform=get_ypred_and_y),
+        "accuracy": Accuracy(output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
+        "nll": Loss(loss_fn, output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
     }
 
     for name, metric in metrics.items():
@@ -155,9 +158,10 @@ def train(cfg: DictConfig) -> None:
     # Perform various log operations on metrics collected in the "evaluator" engine output every epoch
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED,
-        # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "log_engine_metrics"
+        # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "run_engine_and_log_metrics"
         _lf_two(
-            log_engine_metrics,
+            # Run the "evaluator" engine (i.e. evaluation loop) on "val_loader" and log metrics
+            run_engine_and_log_metrics,
             evaluator,
             val_loader,
             {
