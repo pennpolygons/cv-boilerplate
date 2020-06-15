@@ -161,12 +161,19 @@ def affine_transform(
     rotate=True,
 ) -> torch.Tensor:
     """Input arguments:
+    SUPER IMPORTANT FOR IMG TO BE CHANNEL FIRST COS AFFINE_GRID 
+    WILL DO ITS THINGREGARLDESS WITHOUT THROWING AN ERROR
     img: b x c x w x h tensor or c x w x h tensor
     affine_matrices: 2x3 tensor
     Returns: transformed_img: bxcxwxh"""
 
     if len(img.shape) == 3:
         img = torch.unsqueeze(img, dim=0)
+
+    try:
+        assert img.shape[2] == img.shape[3]
+    except AssertionError:
+        raise Exception("img not channel first")
 
     grid = F.affine_grid(affine_matrices, list(img.shape))
     transformed_image = F.grid_sample(img, grid, mode="bilinear")
@@ -371,28 +378,27 @@ def low_passed_image(
 
 if __name__ == "__main__":
 
-    gpu = 0
+    """gpu = 0
     img_resized = read_image_resize("../dummy_data/dog_boat_bird.png", (224, 224))
     img_resized = torch.tensor(convert_whc_to_cwh(img_resized)).cuda()
     threshold = torch.tensor([10])
-    low_img = low_passed_image(img_resized, threshold, True)
+    low_img = low_passed_image(img_resized, threshold, True)"""
 
-    """
     gpu = 0
-    img_resized = read_image_resize("../dummy_data/dog_boat_bird.png", (224,224))
-    img_resized = np.expand_dims(img_resized,axis=0)
-    img_resized = torch.tensor(convert_whc_to_cwh(img_resized)).cuda()
+    img_resized = read_image_resize("../dummy_data/dog_boat_bird.png", (224, 224))
+    img_resized = np.expand_dims(img_resized, axis=0)
+    img_resized = torch.tensor(img_resized).cuda()
     threshold = torch.tensor([10])
-    low_img = low_passed_image(img_resized, threshold, True)
-    img_resized_normal = normalize(img_resized)
+    # low_img = low_passed_image(img_resized, threshold, True)
+    # img_resized_normal = normalize(img_resized)
 
     thedx = torch.tensor([1.0]).cuda()
     thedy = torch.tensor([1.0]).cuda()
     scale = torch.tensor([1.0]).cuda()
 
-    the_matrix = create_M_matrix(thedx,thedy,scale)
-    
+    the_matrix = create_M_matrix(thedx, thedy, scale)
+
     output = affine_transform(img_resized, the_matrix)
-    
+
     current = convert_cwh_to_whc(output.detach().cpu().numpy())
-    plt.imsave("lol.png",current[0])"""
+    plt.imsave("lol.png", current[0])
