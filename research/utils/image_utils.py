@@ -119,8 +119,26 @@ def inverse_imagenet_preprocess(img: np.ndarray) -> np.ndarray:
         for i in range(3):
             img[:, i, :, :] = img[i, :, :] * stds[i]
             img[:, i, :, :] = img[i, :, :] + means[i]
-        else:
-            raise ValueError("Input image missing a dimension!")
+    else:
+        raise ValueError("Input image missing a dimension!")
+
+    return img
+
+
+def inverse_mnist_preprocess(img: np.ndarray) -> np.ndarray:
+    """This function takes a channel-first numpy array and inverse normalizes
+    it back to its original statistics before processing.
+
+    input: numpy  array of image, of cxwxh
+    Output: numpy array of  cxwxh"""
+    means = [0.1307]
+    stds = [0.3081]
+
+    if len(img.shape) == 4:
+        img[:, 0, :, :] = img[0, :, :] * stds[0]
+        img[:, 0, :, :] = img[0, :, :] + means[0]
+    else:
+        raise ValueError("Input image missing a dimension!")
 
     return img
 

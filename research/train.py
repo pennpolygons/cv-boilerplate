@@ -1,7 +1,9 @@
+
+import logging
 import hydra
 import torch
-
 import torch.nn as nn
+
 from omegaconf import DictConfig
 from ignite.utils import setup_logger
 from ignite.engine import Events, Engine
@@ -10,15 +12,22 @@ from ignite.metrics import Accuracy, Loss
 from dataset import get_dataloaders
 from networks import get_network
 
+from utils.image_utils import inverse_mnist_preprocess
+
 from utils.engine_logging import (
-    _lf,
-    _lf_val,
+    _lf_one,
+    _lf_two,
     log_engine_output,
-    log_engine_metrics,
+    run_engine_and_log_metrics,
+    LOG_OP,
 )
 
 
-def create_supervised_trainer(
+def setup_file_pointers(engine: Engine) -> None:
+    engine.state.fp = {}
+
+
+def create_training_loop(
     model: nn.Module, cfg: DictConfig, device="cpu"
 ) -> Engine:
 
@@ -46,13 +55,16 @@ def create_supervised_trainer(
         optimizer.step()
 
         # Anything you want to log must be returned in this dictionary
-        update_dict = {"nll": loss.item(), "y_pred": y_pred, "y": y}
+        update_dict = {
+            "nll": loss.item(),
+            "y_pred": y_pred,
+            "y": y,
+            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()
+        }
+
         return update_dict
 
     engine = Engine(_update)
-
-    # Common metrics require base "y_pred" and "y". Lambda to reduce verbosity in metrics
-    _ypred_y = lambda _: (_["y_pred"], _["y"])
 
     # (Optional) Specify training metrics. "output_transform" used to select items from "update_dict" needed by metrics
     # Collecting metrics over training set is not recommended
@@ -61,7 +73,7 @@ def create_supervised_trainer(
     return engine
 
 
-def create_supervised_evaluator(
+def create_evaluation_loop(
     model: nn.Module, cfg: DictConfig, device="cpu"
 ) -> Engine:
 
@@ -76,19 +88,20 @@ def create_supervised_evaluator(
             y_pred = model(x)
 
         # Anything you want to log must be returned in this dictionary
-        infer_dict = {"y_pred": y_pred, "y": y}
+        infer_dict = {
+            "y_pred": y_pred,
+            "y": y
+        }
+
         return infer_dict
 
     evaluator = Engine(_inference)
 
-    # Common metrics require base "y_pred" and "y". Lambda to reduce verbosity in metrics
-    _ypred_y = lambda _: (_["y_pred"], _["y"])
-
     # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
-    # https://pytorch.org/ignite/metrics.html#ignite.metrics.Loss
+    # https://pytorch.org/ignite/metrics.html#ignite.metrics.
     metrics = {
-        "accuracy": Accuracy(output_transform=_ypred_y),
-        "nll": Loss(loss_fn, output_transform=_ypred_y),
+        "accuracy": Accuracy(output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
+        "nll": Loss(loss_fn, output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
     }
 
     for name, metric in metrics.items():
@@ -113,29 +126,49 @@ def train(cfg: DictConfig) -> None:
     train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
     # Training loop logic
-    trainer = create_supervised_trainer(model, cfg, device=device)
-
+    trainer = create_training_loop(model, cfg, device=device)
+    trainer.logger = setup_logger(name="trainer")
+    
     # Evaluation loop logic
-    evaluator = create_supervised_evaluator(model, cfg, device=device)
-
-    trainer.logger = setup_logger("trainer")
-    evaluator.logger = setup_logger("evaluator")
-
+    evaluator = create_evaluation_loop(model, cfg, device=device)
+    evaluator.logger = setup_logger(name="evaluator")
+    
     ########################################################################
     # Callbacks
     ########################################################################
 
-    # When epoch completes, run evaluator engine on val_loader, then log ["accuracy", "nll"] metrics to file and stdout.
+    #!!!! Required. Do not change. !!!!#
+    trainer.add_event_handler(Events.STARTED, setup_file_pointers)
+    evaluator.add_event_handler(Events.STARTED, setup_file_pointers)
+
+    # Perform various log operations on the "trainer" engine output every 50 iterations
     trainer.add_event_handler(
-        Events.EPOCH_COMPLETED,
-        _lf_val(
-            log_engine_metrics, evaluator, val_loader, ["accuracy", "nll"], stdout=True,
+        Events.ITERATION_COMPLETED(every=50),
+        # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
+        _lf_one(
+            log_engine_output,
+            {
+                LOG_OP.SAVE_IMAGE: ["im"],          # Save image to folder
+                LOG_OP.LOG_MESSAGE: ["nll"],        # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate data files
+            },
         ),
     )
 
-    # When batch completes, log train_engine nll output for batch.
+    # Perform various log operations on metrics collected in the "evaluator" engine output every epoch
     trainer.add_event_handler(
-        Events.ITERATION_COMPLETED(every=50), _lf(log_engine_output, ["nll", "nll"]),
+        Events.EPOCH_COMPLETED,
+        # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "run_engine_and_log_metrics"
+        _lf_two(
+            # Run the "evaluator" engine (i.e. evaluation loop) on "val_loader" and log metrics
+            run_engine_and_log_metrics,
+            evaluator,
+            val_loader,
+            {
+                LOG_OP.LOG_MESSAGE: ["nll", "accuracy"],    # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["accuracy"],     # Log fields as separate data files
+            },
+        ),
     )
 
     # Execute training
