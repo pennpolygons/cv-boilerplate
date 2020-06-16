@@ -9,6 +9,7 @@ from typing import Callable, List, Dict
 from ignite.engine import Events, Engine
 from utils.helpers import tern
 from utils.image_utils import convert_cwh_to_whc
+from utils.visdom_utils import Visualizer
 
 
 def _to_stdout(
@@ -81,6 +82,18 @@ def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
         )
 
 
+def _number_to_visdom(
+    engine: Engine,
+    vis: Visualizer,
+    var_name: str,
+    split_name: str,
+    title_name: str,
+    x: int,
+    y: int,
+):
+    pass
+
+
 class LOG_OP(Enum):
     """Enum wrapper around logging modes"""
 
@@ -94,8 +107,7 @@ class LOG_OP(Enum):
     SAVE_IMAGE = _to_img
 
     # TODO: Add logging operations for Visdom
-
     # Log to visdom
-    # NUMBER_TO_VISDOM = ...
+    NUMBER_TO_VISDOM = _number_to_visdom
     # Log image to visdom
     # IMAGE_TO_VISDOM = ....

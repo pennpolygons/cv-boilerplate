@@ -21,6 +21,7 @@ REQUIRED = [
     "omegaconf>=1.4.1",
     "opencv-python>=4.2.0",
     "matplotlib>=3.2.1",
+    "visdom>=0.1.8.9",
 ]
 
 # What packages are optional?

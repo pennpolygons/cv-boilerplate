@@ -1,5 +1,6 @@
 defaults:
   - backbone: vgg19
+  - visdom: visdom
 
 # Directories
 dirs:

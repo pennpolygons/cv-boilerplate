@@ -1,0 +1,9 @@
+visdom:
+  port: 8000
+  x_min: -1
+  x_max: 1
+  y_min: -1
+  y_max: 1
+  env_name: "main"
+  log_to_filename: "new"
+  offline: True

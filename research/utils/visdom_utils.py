@@ -3,8 +3,9 @@ import numpy as np
 import os
 import time
 import random
-
 import cv2
+
+from omegaconf import DictConfig
 from visdom import Visdom
 from visdom import server
 from torchvision.transforms import ToTensor
@@ -19,13 +20,12 @@ import hydra
 matplotlib.use("tkagg")
 
 
-@hydra.main(config_path="configs/visdom.yaml")
-def make_visdom(cfg):
+def make_visdom(cfg: DictConfig):
     vdb = Visualizer(cfg)
 
 
 class Visualizer:
-    def init(self, cfg):
+    def init(self, cfg: DictConfig):
 
         self.visdom_config = cfg
         visdom_command = (

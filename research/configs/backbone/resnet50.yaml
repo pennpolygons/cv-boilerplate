@@ -1,1 +1,2 @@
-backbone_name: resnet50
+backbone:
+  backbone_name: resnet50

@@ -1,6 +1,6 @@
 import pdb
 from enum import Enum
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Any
 from ignite.engine import Engine
 from torch.utils.data import DataLoader
 from utils.log_operations import LOG_OP
@@ -11,7 +11,7 @@ def _lf_one(
     log_fn: Callable[[Engine, List[str]], None],
     fields: Dict[LOG_OP, List[str]],
     **kwargs
-):
+) -> Callable[[Engine], Any]:
     """Returns a lambda calling custom log function with one engine (e.g. the training loop)"""
     return lambda engine: log_fn(engine, fields, epoch_num=engine.state.epoch, **kwargs)
 
@@ -22,7 +22,7 @@ def _lf_two(
     loader: DataLoader,
     fields: Dict[LOG_OP, List[str]],
     **kwargs
-):
+) -> Callable[[Engine], Any]:
     """Returns a lambda calling custom log function with two engines (e.g. the training loop and validation loop)"""
     return lambda outer_engine: log_fn(
         inner_engine, loader, fields, epoch_num=outer_engine.state.epoch, **kwargs
@@ -44,7 +44,10 @@ def run_engine_and_log_metrics(
     """Run engine on Dataloader. Then log numerical fields in the engine metrics dictionary to stdout"""
     engine.run(loader)
     for mode in fields.keys():
-        mode(engine, fields[mode], "metrics")
+        if mode is LOG_OP.NUMBER_TO_VISDOM:
+            raise NotImplementedError()
+        else:
+            mode(engine, fields[mode], "metrics")
 
 
 # TODO: Add Visdom logging callbacks

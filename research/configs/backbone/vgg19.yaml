@@ -1,1 +1,2 @@
-backbone_name: vgg19
+backbone:
+  backbone_name: vgg19
