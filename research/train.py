@@ -161,11 +161,14 @@ def train(cfg: DictConfig) -> None:
                 LOG_OP.SAVE_IN_DATA_FILE: ["nll"],                                  # Log fields as separate data files
                 LOG_OP.IMAGE_TO_VISDOM: [
                     VisImg("im", caption="caption", title="title")                  # Display image in Visdom
-                ],      
-                LOG_OP.NUMBER_TO_VISDOM: [                                          # Plot fields to Visdom
-                    VisPlot("nll", plot_key="p1", split="nll_1", title="Plot 1"),
+                ],
+                # Plot fields to Visdom
+                LOG_OP.NUMBER_TO_VISDOM: [                         
+                    # First plot, key is "p1"                 
+                    VisPlot("nll", plot_key="p1", split="nll_1", title="Plot 1", x_label="Iters", y_label="nll"),
                     VisPlot("nll_2", plot_key="p1", split="nll_2"),
-                    VisPlot("nll", plot_key="p2", split="nll", title="Plot 2"),
+                    # Second plot, key is "p2"
+                    VisPlot("nll", plot_key="p2", split="nll", title="Plot 2", x_label="foobar", y_label="hooplah"),
                 ] 
             },
         ),

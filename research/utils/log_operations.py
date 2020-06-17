@@ -93,13 +93,21 @@ def _number_to_visdom(
     value_dict = getattr(engine.state, engine_attr)
 
     if x_value is None:
+        # TODO: [29]https://github.com/pennpolygons/cv-boilerplate/issues/29
+        # Should support logging epoch, global iteration, etc
         x_value = (
             engine.state.epoch_length * engine.state.epoch + engine.state.iteration
         )
 
     for msg in vis_plot_msgs:
         vis.plot(
-            msg.plot_key, msg.split, msg.title, x_value, value_dict[msg.var_name],
+            msg.plot_key,
+            msg.split,
+            msg.title,
+            x_value,
+            value_dict[msg.var_name],
+            x_label=msg.x_label,
+            y_label=msg.y_label,
         )
 
 

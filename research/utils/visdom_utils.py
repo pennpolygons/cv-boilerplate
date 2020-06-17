@@ -22,10 +22,12 @@ def make_visdom(cfg: DictConfig):
 
 @dataclass
 class VisPlot:
-    var_name: str
-    plot_key: str
-    split: str
-    title: str = None
+    var_name: str # Field name in the engine state (i.e. engine.outputs.var_name)
+    plot_key: str # Plot used to plot data. Non-existant plot key creates new plot 
+    split: str # Legend split
+    title: str = None # Title
+    x_label: str = None
+    y_label: str = None
 
 @dataclass
 class VisImg:
@@ -74,7 +76,9 @@ class Visualizer:
     def plot_plotly(self, fig, caption="view", title="title", win=1):
         self.vis.plotlyplot(fig, win=win)
 
-    def plot(self, plot_key: str, split_name: str, title_name: str, x: int, y: int):
+    def plot(self, plot_key: str, split_name: str, title_name: str, x: int, y: int, x_label: str = None, y_label: str = None):
+        x_label = x_label or "Epochs"
+        y_label = y_label or split_name
         if plot_key not in self.plots:
             self.plots[plot_key] = self.vis.line(
                 X=np.array([x, x]),
@@ -83,8 +87,8 @@ class Visualizer:
                 opts=dict(
                     legend=[split_name],
                     title=title_name,
-                    xlabel="Epochs",
-                    ylabel=plot_key,
+                    xlabel=x_label,
+                    ylabel=y_label,
                 ),
             )
         else:
