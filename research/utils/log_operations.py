@@ -125,7 +125,7 @@ class LOG_OP(Enum):
     LOG_MESSAGE = _to_log
     # Log to separate file
     SAVE_IN_DATA_FILE = _to_file
-    # Log image to standalone folder
+    # Save image to standalone folder
     SAVE_IMAGE = _to_img
     # Log to visdom
     NUMBER_TO_VISDOM = _number_to_visdom

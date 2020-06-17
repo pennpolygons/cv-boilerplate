@@ -29,7 +29,7 @@ def startup_engine(engine: Engine, vis: Visualizer = None) -> None:
 
 
 def create_training_loop(
-    model: nn.Module, cfg: DictConfig, device="cpu"
+    model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
     # Network
@@ -67,6 +67,9 @@ def create_training_loop(
 
     engine = Engine(_update)
 
+    # Required to set up logging
+    engine.logger = setup_logger(name=name)
+
     # (Optional) Specify training metrics. "output_transform" used to select items from "update_dict" needed by metrics
     # Collecting metrics over training set is not recommended
     # https://pytorch.org/ignite/metrics.html#ignite.metrics.Loss
@@ -75,7 +78,7 @@ def create_training_loop(
 
 
 def create_evaluation_loop(
-    model: nn.Module, cfg: DictConfig, device="cpu"
+    model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
     # Loss
@@ -96,7 +99,10 @@ def create_evaluation_loop(
 
         return infer_dict
 
-    evaluator = Engine(_inference)
+    engine = Engine(_inference)
+
+    # Required to set up logging
+    engine.logger = setup_logger(name=name)
 
     # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
     # https://pytorch.org/ignite/metrics.html#ignite.metrics.
@@ -106,10 +112,9 @@ def create_evaluation_loop(
     }
 
     for name, metric in metrics.items():
-        metric.attach(evaluator, name)
+        metric.attach(engine, name)
 
-    return evaluator
-
+    return engine
 
 ########################################################################
 # Main training loop
@@ -120,30 +125,28 @@ def train(cfg: DictConfig) -> None:
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # spin up visdom
+    # Spin up visdom
     vis = Visualizer(cfg)
 
     # Model
     model = get_network(cfg)
 
-    # Data Loader
+    # Data Loaders
     train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
-    # Training loop logic
-    trainer = create_training_loop(model, cfg, device=device)
-    trainer.logger = setup_logger(name="trainer")
-    
-    # Evaluation loop logic
-    evaluator = create_evaluation_loop(model, cfg, device=device)
-    evaluator.logger = setup_logger(name="evaluator")
+    # Your training loop
+    trainer = create_training_loop(model, cfg, "trainer", device=device)    
+    # Your evaluation loop
+    evaluator = create_evaluation_loop(model, cfg, "evaluator", device=device)
     
     ########################################################################
-    # Callbacks
+    # Logging Callbacks
     ########################################################################
 
     #!!!! Required. Do not change. !!!!#
     trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
     evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
+
 
     # Perform various log operations on the "trainer" engine output every 50 iterations
     trainer.add_event_handler(
@@ -156,7 +159,7 @@ def train(cfg: DictConfig) -> None:
                 LOG_OP.LOG_MESSAGE: ["nll"],                                    # Log fields as message in logfile
                 LOG_OP.SAVE_IN_DATA_FILE: ["nll"],                              # Log fields as separate data files
                 LOG_OP.NUMBER_TO_VISDOM: [VisPlot("nll", "nll", "test")],       # Plot fields to Visdom
-                LOG_OP.IMAGE_TO_VISDOM: [VisImg("im", "caption", "title")]      # Plot image to Visdom
+                LOG_OP.IMAGE_TO_VISDOM: [VisImg("im", caption="caption", title="title")]      # Display image in Visdom
             },
         ),
     )

@@ -1,5 +1,3 @@
-import pdb
-from enum import Enum
 from typing import Callable, List, Dict, Any, Union
 from ignite.engine import Engine
 from torch.utils.data import DataLoader
@@ -38,9 +36,9 @@ def log_engine_output(
     """Log numerical fields in the engine output dictionary to stdout"""
     for mode in fields.keys():
         if mode is LOG_OP.NUMBER_TO_VISDOM or mode is LOG_OP.IMAGE_TO_VISDOM:
-            mode(engine, engine.state.vis, fields[mode], "output")
+            mode(engine, engine.state.vis, fields[mode], engine_attr="output")
         else:
-            mode(engine, fields[mode], "output")
+            mode(engine, fields[mode], engine_attr="output")
 
 
 def run_engine_and_log_metrics(
@@ -50,10 +48,12 @@ def run_engine_and_log_metrics(
     """Run engine on Dataloader. Then log numerical fields in the engine metrics dictionary to stdout"""
     engine.run(loader)
     for mode in fields.keys():
-        mode(engine, fields[mode], "metrics")
+        if mode is LOG_OP.NUMBER_TO_VISDOM or mode is LOG_OP.IMAGE_TO_VISDOM:
+            mode(engine, engine.state.vis, fields[mode], engine_attr="metrics")
+        else:
+            mode(engine, fields[mode], engine_attr="metrics")
 
 
-# TODO: Add Visdom logging callbacks
 # TODO: Add Slack notification callback
 
 # FIXME: Engine doesn't seem to have "times" attribute in engine state contrary to docs

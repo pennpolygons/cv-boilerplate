@@ -1,3 +1,4 @@
+import hydra
 import os
 import torchvision
 
@@ -18,7 +19,7 @@ def get_dataloaders(
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     dataset = torchvision.datasets.MNIST(
-        os.path.join(os.environ["ORIG_CWD"], cfg.dirs.data),
+        os.path.join(hydra.utils.get_original_cwd(), cfg.dirs.data),
         download=True,
         transform=data_transform,
     )

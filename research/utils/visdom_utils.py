@@ -29,8 +29,8 @@ class VisPlot:
 @dataclass
 class VisImg:
     var_name: str
-    caption: str
-    title: str
+    caption: str = None
+    title: str = None
 
 
 class Visualizer:
@@ -38,11 +38,7 @@ class Visualizer:
         self.cfg = cfg.visdom
 
         visdom_command = (
-            "screen -S visdom_"
-            + str(self.cfg.port)
-            + ' -d -m bash -c "python -m visdom.server -port '
-            + str(self.cfg.port)
-            + '"'
+            'screen -S visdom_{} -d -m bash -c "python -m visdom.server -port {}"'.format(self.cfg.port, self.cfg.port)
         )
 
         os.mkdir("visdom")
