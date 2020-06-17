@@ -1,10 +1,11 @@
 import pdb
 from enum import Enum
-from typing import Callable, List, Dict, Any
+from typing import Callable, List, Dict, Any, Union
 from ignite.engine import Engine
 from torch.utils.data import DataLoader
 from utils.log_operations import LOG_OP
 from utils.helpers import tern
+from utils.visdom_utils import VisPlotMsg
 
 
 def _lf_one(
@@ -30,11 +31,16 @@ def _lf_two(
 
 
 def log_engine_output(
-    engine: Engine, fields: Dict[LOG_OP, List[str]], epoch_num=None
+    engine: Engine,
+    fields: Dict[LOG_OP, Union[List[str], List[VisPlotMsg]]],
+    epoch_num=None,
 ) -> None:
     """Log numerical fields in the engine output dictionary to stdout"""
     for mode in fields.keys():
-        mode(engine, fields[mode], "output")
+        if mode is LOG_OP.NUMBER_TO_VISDOM:
+            mode(engine, engine.state.vis, fields[mode], "output")
+        else:
+            mode(engine, fields[mode], "output")
 
 
 def run_engine_and_log_metrics(
@@ -44,10 +50,7 @@ def run_engine_and_log_metrics(
     """Run engine on Dataloader. Then log numerical fields in the engine metrics dictionary to stdout"""
     engine.run(loader)
     for mode in fields.keys():
-        if mode is LOG_OP.NUMBER_TO_VISDOM:
-            raise NotImplementedError()
-        else:
-            mode(engine, fields[mode], "metrics")
+        mode(engine, fields[mode], "metrics")
 
 
 # TODO: Add Visdom logging callbacks

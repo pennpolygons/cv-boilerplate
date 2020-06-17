@@ -11,7 +11,7 @@ from ignite.metrics import Accuracy, Loss
 
 from dataset import get_dataloaders
 from networks import get_network
-
+from utils.visdom_utils import Visualizer, VisPlotMsg
 from utils.image_utils import inverse_mnist_preprocess
 
 from utils.engine_logging import (
@@ -23,8 +23,9 @@ from utils.engine_logging import (
 )
 
 
-def setup_file_pointers(engine: Engine) -> None:
+def startup_engine(engine: Engine, vis: Visualizer = None) -> None:
     engine.state.fp = {}
+    engine.state.vis = vis
 
 
 def create_training_loop(
@@ -119,6 +120,9 @@ def train(cfg: DictConfig) -> None:
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    # spin up visdom
+    vis = Visualizer(cfg)
+
     # Model
     model = get_network(cfg)
 
@@ -138,8 +142,8 @@ def train(cfg: DictConfig) -> None:
     ########################################################################
 
     #!!!! Required. Do not change. !!!!#
-    trainer.add_event_handler(Events.STARTED, setup_file_pointers)
-    evaluator.add_event_handler(Events.STARTED, setup_file_pointers)
+    trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
+    evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
 
     # Perform various log operations on the "trainer" engine output every 50 iterations
     trainer.add_event_handler(
@@ -151,6 +155,7 @@ def train(cfg: DictConfig) -> None:
                 LOG_OP.SAVE_IMAGE: ["im"],          # Save image to folder
                 LOG_OP.LOG_MESSAGE: ["nll"],        # Log fields as message in logfile
                 LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate data files
+                LOG_OP.NUMBER_TO_VISDOM: [VisPlotMsg("nll", "nll", "test")]
             },
         ),
     )

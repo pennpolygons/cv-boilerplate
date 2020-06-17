@@ -5,6 +5,7 @@ import time
 import random
 import cv2
 
+from dataclasses import dataclass
 from omegaconf import DictConfig
 from visdom import Visdom
 from visdom import server
@@ -20,32 +21,42 @@ import hydra
 matplotlib.use("tkagg")
 
 
+@hydra.main(config_path="../configs", config_name="default.yaml")
 def make_visdom(cfg: DictConfig):
     vdb = Visualizer(cfg)
 
 
-class Visualizer:
-    def init(self, cfg: DictConfig):
+@dataclass
+class VisPlotMsg:
+    var_name: str
+    split_name: str
+    title_name: str
 
-        self.visdom_config = cfg
+
+class Visualizer:
+    def __init__(self, cfg: DictConfig):
+        self.cfg = cfg.visdom
+
         visdom_command = (
             "screen -S visdom_"
-            + str(visdom_config["port"])
+            + str(self.cfg.port)
             + ' -d -m bash -c "python -m visdom.server -port '
-            + str(visdom_config["port"])
+            + str(self.cfg.port)
             + '"'
         )
+
+        os.mkdir("visdom")
         os.system(visdom_command)
         time.sleep(2)
-        self.env = cfg.env_name
-        self.vis = visdom.Visdom(
-            port=cfg.port,
-            log_to_filename="temp/" + cfg.log_to_filename,
-            offline=cfg.offline,
+        self.env = self.cfg.env_name  # TODO: What is this
+        self.vis = Visdom(
+            port=self.cfg.port,
+            log_to_filename=os.path.join("visdom", self.cfg.log_to_filename),
+            offline=self.cfg.offline,
         )
         (self.x_min, self.x_max), (self.y_min, self.y_max) = (
-            (cfg.x_min, cfg.x_max),
-            (cfg.y_min, cfg.y_max),
+            (self.cfg.x_min, self.cfg.x_max),
+            (self.cfg.y_min, self.cfg.y_max),
         )
         self.counter = 0
         self.plots = {}
@@ -66,7 +77,7 @@ class Visualizer:
     def plot_plotly(self, fig, caption="view", title="title", win=1):
         self.vis.plotlyplot(fig, win=win)
 
-    def plot(self, var_name, split_name, title_name, x, y):
+    def plot(self, var_name: str, split_name: str, title_name: str, x: int, y: int):
         if var_name not in self.plots:
             self.plots[var_name] = self.vis.line(
                 X=np.array([x, x]),

@@ -6,4 +6,4 @@ visdom:
   y_max: 1
   env_name: "main"
   log_to_filename: "new"
-  offline: True
+  offline: False

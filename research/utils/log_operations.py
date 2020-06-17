@@ -9,7 +9,7 @@ from typing import Callable, List, Dict
 from ignite.engine import Events, Engine
 from utils.helpers import tern
 from utils.image_utils import convert_cwh_to_whc
-from utils.visdom_utils import Visualizer
+from utils.visdom_utils import Visualizer, VisPlotMsg
 
 
 def _to_stdout(
@@ -85,13 +85,26 @@ def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
 def _number_to_visdom(
     engine: Engine,
     vis: Visualizer,
-    var_name: str,
-    split_name: str,
-    title_name: str,
-    x: int,
-    y: int,
-):
-    pass
+    vis_plot_msgs: List[VisPlotMsg],
+    engine_attr: str,
+    x_value: int = None,
+) -> None:
+    """Save engine output to Visdom server"""
+    value_dict = getattr(engine.state, engine_attr)
+
+    if x_value is None:
+        x_value = (
+            engine.state.epoch_length * engine.state.epoch + engine.state.iteration
+        )
+
+    for msg in vis_plot_msgs:
+        vis.plot(
+            msg.var_name,
+            msg.split_name,
+            msg.title_name,
+            x_value,
+            value_dict[msg.var_name],
+        )
 
 
 class LOG_OP(Enum):
@@ -105,8 +118,6 @@ class LOG_OP(Enum):
     SAVE_IN_DATA_FILE = _to_file
     # Log image to standalone folder
     SAVE_IMAGE = _to_img
-
-    # TODO: Add logging operations for Visdom
     # Log to visdom
     NUMBER_TO_VISDOM = _number_to_visdom
     # Log image to visdom
