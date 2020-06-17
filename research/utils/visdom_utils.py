@@ -23,8 +23,9 @@ def make_visdom(cfg: DictConfig):
 @dataclass
 class VisPlot:
     var_name: str
-    split_name: str
-    title_name: str
+    plot_key: str
+    split: str
+    title: str = None
 
 @dataclass
 class VisImg:
@@ -73,9 +74,9 @@ class Visualizer:
     def plot_plotly(self, fig, caption="view", title="title", win=1):
         self.vis.plotlyplot(fig, win=win)
 
-    def plot(self, var_name: str, split_name: str, title_name: str, x: int, y: int):
-        if var_name not in self.plots:
-            self.plots[var_name] = self.vis.line(
+    def plot(self, plot_key: str, split_name: str, title_name: str, x: int, y: int):
+        if plot_key not in self.plots:
+            self.plots[plot_key] = self.vis.line(
                 X=np.array([x, x]),
                 Y=np.array([y, y]),
                 env=self.env,
@@ -83,7 +84,7 @@ class Visualizer:
                     legend=[split_name],
                     title=title_name,
                     xlabel="Epochs",
-                    ylabel=var_name,
+                    ylabel=plot_key,
                 ),
             )
         else:
@@ -91,7 +92,7 @@ class Visualizer:
                 X=np.array([x]),
                 Y=np.array([y]),
                 env=self.env,
-                win=self.plots[var_name],
+                win=self.plots[plot_key],
                 name=split_name,
                 update="append",
             )

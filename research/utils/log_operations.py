@@ -99,11 +99,7 @@ def _number_to_visdom(
 
     for msg in vis_plot_msgs:
         vis.plot(
-            msg.var_name,
-            msg.split_name,
-            msg.title_name,
-            x_value,
-            value_dict[msg.var_name],
+            msg.plot_key, msg.split, msg.title, x_value, value_dict[msg.var_name],
         )
 
 

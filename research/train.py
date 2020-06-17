@@ -58,6 +58,7 @@ def create_training_loop(
         # Anything you want to log must be returned in this dictionary
         update_dict = {
             "nll": loss.item(),
+            "nll_2": loss.item() + 0.5,
             "y_pred": y_pred,
             "y": y,
             "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()
@@ -155,11 +156,17 @@ def train(cfg: DictConfig) -> None:
         _lf_one(
             log_engine_output,
             {
-                LOG_OP.SAVE_IMAGE: ["im"],                                      # Save image to folder
-                LOG_OP.LOG_MESSAGE: ["nll"],                                    # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],                              # Log fields as separate data files
-                LOG_OP.NUMBER_TO_VISDOM: [VisPlot("nll", "nll", "test")],       # Plot fields to Visdom
-                LOG_OP.IMAGE_TO_VISDOM: [VisImg("im", caption="caption", title="title")]      # Display image in Visdom
+                LOG_OP.SAVE_IMAGE: ["im"],                                          # Save image to folder
+                LOG_OP.LOG_MESSAGE: ["nll"],                                        # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],                                  # Log fields as separate data files
+                LOG_OP.IMAGE_TO_VISDOM: [
+                    VisImg("im", caption="caption", title="title")                  # Display image in Visdom
+                ],      
+                LOG_OP.NUMBER_TO_VISDOM: [                                          # Plot fields to Visdom
+                    VisPlot("nll", plot_key="p1", split="nll_1", title="Plot 1"),
+                    VisPlot("nll_2", plot_key="p1", split="nll_2"),
+                    VisPlot("nll", plot_key="p2", split="nll", title="Plot 2"),
+                ] 
             },
         ),
     )
