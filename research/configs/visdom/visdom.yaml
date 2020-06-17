@@ -4,6 +4,5 @@ visdom:
   x_max: 1
   y_min: -1
   y_max: 1
-  env_name: "main"
-  log_to_filename: "new"
+  log_to_filename: "visdom_log"
   offline: False

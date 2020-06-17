@@ -108,16 +108,18 @@ def _number_to_visdom(
             value_dict[msg.var_name],
             x_label=msg.x_label,
             y_label=msg.y_label,
+            env=msg.env,
         )
 
 
 def _image_to_visdom(
     engine: Engine, vis: Visualizer, vis_img_msgs: List[VisImg], engine_attr: str,
 ) -> None:
-
     value_dict = getattr(engine.state, engine_attr)
     for msg in vis_img_msgs:
-        vis.plot_img_255(value_dict[msg.var_name], caption=msg.caption, title=msg.title)
+        vis.plot_img_255(
+            value_dict[msg.var_name], caption=msg.caption, title=msg.title, env=msg.env,
+        )
 
 
 class LOG_OP(Enum):

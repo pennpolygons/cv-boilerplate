@@ -156,11 +156,15 @@ def train(cfg: DictConfig) -> None:
         _lf_one(
             log_engine_output,
             {
-                LOG_OP.SAVE_IMAGE: ["im"],                                          # Save image to folder
-                LOG_OP.LOG_MESSAGE: ["nll"],                                        # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],                                  # Log fields as separate data files
+                # Save image to folder
+                LOG_OP.SAVE_IMAGE: ["im"],
+                # Log fields as message in logfile
+                LOG_OP.LOG_MESSAGE: ["nll"],
+                # Log fields as separate data files
+                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],
+                # Display image in Visdom
                 LOG_OP.IMAGE_TO_VISDOM: [
-                    VisImg("im", caption="caption", title="title")                  # Display image in Visdom
+                    VisImg("im", caption="caption", title="title", env="images")
                 ],
                 # Plot fields to Visdom
                 LOG_OP.NUMBER_TO_VISDOM: [                         
