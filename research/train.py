@@ -11,7 +11,7 @@ from ignite.metrics import Accuracy, Loss
 
 from dataset import get_dataloaders
 from networks import get_network
-from utils.visdom_utils import Visualizer, VisPlotMsg
+from utils.visdom_utils import Visualizer, VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
 
 from utils.engine_logging import (
@@ -152,10 +152,11 @@ def train(cfg: DictConfig) -> None:
         _lf_one(
             log_engine_output,
             {
-                LOG_OP.SAVE_IMAGE: ["im"],          # Save image to folder
-                LOG_OP.LOG_MESSAGE: ["nll"],        # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate data files
-                LOG_OP.NUMBER_TO_VISDOM: [VisPlotMsg("nll", "nll", "test")]
+                LOG_OP.SAVE_IMAGE: ["im"],                                      # Save image to folder
+                LOG_OP.LOG_MESSAGE: ["nll"],                                    # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],                              # Log fields as separate data files
+                LOG_OP.NUMBER_TO_VISDOM: [VisPlot("nll", "nll", "test")],       # Plot fields to Visdom
+                LOG_OP.IMAGE_TO_VISDOM: [VisImg("im", "caption", "title")]      # Plot image to Visdom
             },
         ),
     )

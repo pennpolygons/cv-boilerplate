@@ -1,21 +1,15 @@
-import numpy as np
 
 import os
 import time
-import random
-import cv2
+import hydra
+import matplotlib
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from dataclasses import dataclass
 from omegaconf import DictConfig
-from visdom import Visdom
-from visdom import server
-from torchvision.transforms import ToTensor
-from torch import Tensor
-import matplotlib.pyplot as plt
-import matplotlib
-import pdb
-import signal
-import hydra
+from visdom import server, Visdom
 
 
 matplotlib.use("tkagg")
@@ -27,10 +21,16 @@ def make_visdom(cfg: DictConfig):
 
 
 @dataclass
-class VisPlotMsg:
+class VisPlot:
     var_name: str
     split_name: str
     title_name: str
+
+@dataclass
+class VisImg:
+    var_name: str
+    caption: str
+    title: str
 
 
 class Visualizer:
