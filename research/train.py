@@ -156,40 +156,44 @@ def train(cfg: DictConfig) -> None:
         # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
         _lf_one(
             log_engine_output,
-            {
+            [
                 # Save image to folder
-                LOG_OP.SAVE_IMAGE: ["im"],
+                (LOG_OP.SAVE_IMAGE, ["im"]),
                 # Log fields as message in logfile
-                LOG_OP.LOG_MESSAGE: ["nll"],
+                (LOG_OP.LOG_MESSAGE, ["nll"]),
                 # Log fields as separate data files
-                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],
+                (LOG_OP.SAVE_IN_DATA_FILE, ["nll"]),
                 # Display image in Visdom
-                LOG_OP.IMAGE_TO_VISDOM: [
-                    VisImg("im", caption="caption", title="title", env="images")
-                ],
+                (
+                    LOG_OP.IMAGE_TO_VISDOM,
+                    [VisImg("im", caption="caption", title="title", env="images")],
+                ),
                 # Plot fields to Visdom
-                LOG_OP.NUMBER_TO_VISDOM: [
-                    # First plot, key is "p1"
-                    VisPlot(
-                        "nll",
-                        plot_key="p1",
-                        split="nll_1",
-                        title="Plot 1",
-                        x_label="Iters",
-                        y_label="nll",
-                    ),
-                    VisPlot("nll_2", plot_key="p1", split="nll_2"),
-                    # Second plot, key is "p2"
-                    VisPlot(
-                        "nll",
-                        plot_key="p2",
-                        split="nll",
-                        title="Plot 2",
-                        x_label="foobar",
-                        y_label="hooplah",
-                    ),
-                ],
-            },
+                (
+                    LOG_OP.NUMBER_TO_VISDOM,
+                    [
+                        # First plot, key is "p1"
+                        VisPlot(
+                            "nll",
+                            plot_key="p1",
+                            split="nll_1",
+                            title="Plot 1",
+                            x_label="Iters",
+                            y_label="nll",
+                        ),
+                        VisPlot("nll_2", plot_key="p1", split="nll_2"),
+                        # Second plot, key is "p2"
+                        VisPlot(
+                            "nll",
+                            plot_key="p2",
+                            split="nll",
+                            title="Plot 2",
+                            x_label="foobar",
+                            y_label="hooplah",
+                        ),
+                    ],
+                ),
+            ],
         ),
     )
 
@@ -202,15 +206,16 @@ def train(cfg: DictConfig) -> None:
             run_engine_and_log_metrics,
             evaluator,
             val_loader,
-            {
-                LOG_OP.LOG_MESSAGE: [
-                    "nll",
-                    "accuracy",
-                ],  # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: [
-                    "accuracy"
-                ],  # Log fields as separate data files
-            },
+            [
+                (
+                    LOG_OP.LOG_MESSAGE,
+                    ["nll", "accuracy",],
+                ),  # Log fields as message in logfile
+                (
+                    LOG_OP.SAVE_IN_DATA_FILE,
+                    ["accuracy"],
+                ),  # Log fields as separate data files
+            ],
         ),
     )
 
