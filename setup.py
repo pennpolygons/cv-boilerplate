@@ -17,10 +17,14 @@ PACKAGES = ["research"]
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    "hydra-core>=0.11.3",
-    "omegaconf>=1.4.1",
+    "hydra-core>=1.0.0-rc1",
+    "omegaconf>=2.0.1rc6",
     "opencv-python>=4.2.0",
     "matplotlib>=3.2.1",
+    "visdom>=0.1.8.9",
+    "torch>=1.5.0",
+    "pytorch-ignite>=0.3.0",
+    "torchvision>=0.6.0",
 ]
 
 # What packages are optional?

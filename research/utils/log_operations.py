@@ -9,6 +9,7 @@ from typing import Callable, List, Dict
 from ignite.engine import Events, Engine
 from utils.helpers import tern
 from utils.image_utils import convert_cwh_to_whc
+from utils.visdom_utils import Visualizer, VisPlot, VisImg
 
 
 def _to_stdout(
@@ -66,7 +67,9 @@ def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
             os.makedirs(os.path.join(engine.logger.name, field))
 
         if torch.is_tensor(value_dict[field]):
-            im = Image.fromarray(value_dict[field].numpy().astype(np.uint8))
+            im = Image.fromarray(
+                value_dict[field].detach().cpu().numpy().astype(np.uint8)
+            )
         else:
             im = Image.fromarray(value_dict[field].astype(np.uint8))
 
@@ -81,6 +84,46 @@ def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
         )
 
 
+def _number_to_visdom(
+    engine: Engine,
+    vis: Visualizer,
+    vis_plot_msgs: List[VisPlot],
+    engine_attr: str,
+    x_value: int = None,
+) -> None:
+    """Save engine output to Visdom server"""
+    value_dict = getattr(engine.state, engine_attr)
+
+    if x_value is None:
+        # TODO: [29]https://github.com/pennpolygons/cv-boilerplate/issues/29
+        # Should support logging epoch, global iteration, etc
+        x_value = (
+            engine.state.epoch_length * engine.state.epoch + engine.state.iteration
+        )
+
+    for msg in vis_plot_msgs:
+        vis.plot(
+            msg.plot_key,
+            msg.split,
+            msg.title,
+            x_value,
+            value_dict[msg.var_name],
+            x_label=msg.x_label,
+            y_label=msg.y_label,
+            env=msg.env,
+        )
+
+
+def _image_to_visdom(
+    engine: Engine, vis: Visualizer, vis_img_msgs: List[VisImg], engine_attr: str,
+) -> None:
+    value_dict = getattr(engine.state, engine_attr)
+    for msg in vis_img_msgs:
+        vis.plot_img_255(
+            value_dict[msg.var_name], caption=msg.caption, title=msg.title, env=msg.env,
+        )
+
+
 class LOG_OP(Enum):
     """Enum wrapper around logging modes"""
 
@@ -90,12 +133,9 @@ class LOG_OP(Enum):
     LOG_MESSAGE = _to_log
     # Log to separate file
     SAVE_IN_DATA_FILE = _to_file
-    # Log image to standalone folder
+    # Save image to standalone folder
     SAVE_IMAGE = _to_img
-
-    # TODO: Add logging operations for Visdom
-
     # Log to visdom
-    # NUMBER_TO_VISDOM = ...
+    NUMBER_TO_VISDOM = _number_to_visdom
     # Log image to visdom
-    # IMAGE_TO_VISDOM = ....
+    IMAGE_TO_VISDOM = _image_to_visdom

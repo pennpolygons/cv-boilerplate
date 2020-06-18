@@ -1,15 +1,19 @@
 # cv-boilerplate
-Open source boilerplate for computer vision research
+Open source boilerplate for computer vision research. We solve small problems related to project management, experiment management, code styling, and model training so you can get back to research!
 
 ![License](https://img.shields.io/github/license/pennpolygons/cv-boilerplate)
 
-# Mission
+# Installation
 
-We believe that solving small problems related to project management, experiment management, code styling, and model training will benefit the community by making it easier to jump into research. 
+```
+git clone https://github.com/pennpolygons/cv-boilerplate.git
+cd cv-boilerplate
+pip install -e .
+```
 
 ## Building Blocks & Choices
 
-This project is, at its essence, a collection of principled choices to make CV research easier. We prioritize using tools that minimize researcher choices, help keep the codebase _uncluttered_, and make research easy to distribute and reproduce. Note, these choices are not set in stone, and do not reflect any affiliation with any specific institution. Our choices reflect the state of tooling as it currently exists.
+This project is a collection of principled choices to make CV research easier. We prioritize using tools that minimize researcher engineering work, help keep the codebase _uncluttered_, and make research easy to distribute and reproduce.
 
 - __Python Formatting__: [Black](https://black.readthedocs.io/en/stable/)
 - __Configuration Management__: [Hydra](https://hydra.cc/)

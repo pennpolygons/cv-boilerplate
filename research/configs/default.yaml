@@ -1,5 +1,6 @@
 defaults:
   - backbone: vgg19
+  - visdom: visdom
 
 # Directories
 dirs:
@@ -18,8 +19,3 @@ mode:
     shuffle: False
 
 # TODO: Copy in Slack API key using hydra ... copy_env
-
-hydra:
-  job:
-    env_set:
-      ORIG_CWD: ${hydra.runtime.cwd}

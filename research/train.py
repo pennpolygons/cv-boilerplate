@@ -1,4 +1,3 @@
-
 import logging
 import hydra
 import torch
@@ -11,7 +10,7 @@ from ignite.metrics import Accuracy, Loss
 
 from dataset import get_dataloaders
 from networks import get_network
-
+from utils.visdom_utils import Visualizer, VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
 
 from utils.engine_logging import (
@@ -23,12 +22,13 @@ from utils.engine_logging import (
 )
 
 
-def setup_file_pointers(engine: Engine) -> None:
+def startup_engine(engine: Engine, vis: Visualizer = None) -> None:
     engine.state.fp = {}
+    engine.state.vis = vis
 
 
 def create_training_loop(
-    model: nn.Module, cfg: DictConfig, device="cpu"
+    model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
     # Network
@@ -57,14 +57,18 @@ def create_training_loop(
         # Anything you want to log must be returned in this dictionary
         update_dict = {
             "nll": loss.item(),
+            "nll_2": loss.item() + 0.5,
             "y_pred": y_pred,
             "y": y,
-            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()
+            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze(),
         }
 
         return update_dict
 
     engine = Engine(_update)
+
+    # Required to set up logging
+    engine.logger = setup_logger(name=name)
 
     # (Optional) Specify training metrics. "output_transform" used to select items from "update_dict" needed by metrics
     # Collecting metrics over training set is not recommended
@@ -74,7 +78,7 @@ def create_training_loop(
 
 
 def create_evaluation_loop(
-    model: nn.Module, cfg: DictConfig, device="cpu"
+    model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
     # Loss
@@ -88,26 +92,31 @@ def create_evaluation_loop(
             y_pred = model(x)
 
         # Anything you want to log must be returned in this dictionary
-        infer_dict = {
-            "y_pred": y_pred,
-            "y": y
-        }
+        infer_dict = {"y_pred": y_pred, "y": y}
 
         return infer_dict
 
-    evaluator = Engine(_inference)
+    engine = Engine(_inference)
+
+    # Required to set up logging
+    engine.logger = setup_logger(name=name)
 
     # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
     # https://pytorch.org/ignite/metrics.html#ignite.metrics.
     metrics = {
-        "accuracy": Accuracy(output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
-        "nll": Loss(loss_fn, output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
+        "accuracy": Accuracy(
+            output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])
+        ),
+        "nll": Loss(
+            loss_fn,
+            output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"]),
+        ),
     }
 
     for name, metric in metrics.items():
-        metric.attach(evaluator, name)
+        metric.attach(engine, name)
 
-    return evaluator
+    return engine
 
 
 ########################################################################
@@ -119,27 +128,27 @@ def train(cfg: DictConfig) -> None:
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    # Spin up visdom
+    vis = Visualizer(cfg)
+
     # Model
     model = get_network(cfg)
 
-    # Data Loader
+    # Data Loaders
     train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
-    # Training loop logic
-    trainer = create_training_loop(model, cfg, device=device)
-    trainer.logger = setup_logger(name="trainer")
-    
-    # Evaluation loop logic
-    evaluator = create_evaluation_loop(model, cfg, device=device)
-    evaluator.logger = setup_logger(name="evaluator")
-    
+    # Your training loop
+    trainer = create_training_loop(model, cfg, "trainer", device=device)
+    # Your evaluation loop
+    evaluator = create_evaluation_loop(model, cfg, "evaluator", device=device)
+
     ########################################################################
-    # Callbacks
+    # Logging Callbacks
     ########################################################################
 
     #!!!! Required. Do not change. !!!!#
-    trainer.add_event_handler(Events.STARTED, setup_file_pointers)
-    evaluator.add_event_handler(Events.STARTED, setup_file_pointers)
+    trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
+    evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
 
     # Perform various log operations on the "trainer" engine output every 50 iterations
     trainer.add_event_handler(
@@ -147,11 +156,44 @@ def train(cfg: DictConfig) -> None:
         # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
         _lf_one(
             log_engine_output,
-            {
-                LOG_OP.SAVE_IMAGE: ["im"],          # Save image to folder
-                LOG_OP.LOG_MESSAGE: ["nll"],        # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["nll"],  # Log fields as separate data files
-            },
+            [
+                # Save image to folder
+                (LOG_OP.SAVE_IMAGE, ["im"]),
+                # Log fields as message in logfile
+                (LOG_OP.LOG_MESSAGE, ["nll"]),
+                # Log fields as separate data files
+                (LOG_OP.SAVE_IN_DATA_FILE, ["nll"]),
+                # Display image in Visdom
+                (
+                    LOG_OP.IMAGE_TO_VISDOM,
+                    [VisImg("im", caption="caption", title="title", env="images")],
+                ),
+                # Plot fields to Visdom
+                (
+                    LOG_OP.NUMBER_TO_VISDOM,
+                    [
+                        # First plot, key is "p1"
+                        VisPlot(
+                            "nll",
+                            plot_key="p1",
+                            split="nll_1",
+                            title="Plot 1",
+                            x_label="Iters",
+                            y_label="nll",
+                        ),
+                        VisPlot("nll_2", plot_key="p1", split="nll_2"),
+                        # Second plot, key is "p2"
+                        VisPlot(
+                            "nll",
+                            plot_key="p2",
+                            split="nll",
+                            title="Plot 2",
+                            x_label="foobar",
+                            y_label="hooplah",
+                        ),
+                    ],
+                ),
+            ],
         ),
     )
 
@@ -164,10 +206,16 @@ def train(cfg: DictConfig) -> None:
             run_engine_and_log_metrics,
             evaluator,
             val_loader,
-            {
-                LOG_OP.LOG_MESSAGE: ["nll", "accuracy"],    # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["accuracy"],     # Log fields as separate data files
-            },
+            [
+                (
+                    LOG_OP.LOG_MESSAGE,
+                    ["nll", "accuracy",],
+                ),  # Log fields as message in logfile
+                (
+                    LOG_OP.SAVE_IN_DATA_FILE,
+                    ["accuracy"],
+                ),  # Log fields as separate data files
+            ],
         ),
     )
 

@@ -1,0 +1,8 @@
+visdom:
+  port: 8000
+  x_min: -1
+  x_max: 1
+  y_min: -1
+  y_max: 1
+  log_to_filename: "visdom_log"
+  offline: False

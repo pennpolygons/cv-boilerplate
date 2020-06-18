@@ -1,90 +1,139 @@
-import numpy as np
-
 import os
 import time
-import random
-
-import cv2
-from visdom import Visdom
-from visdom import server
-from torchvision.transforms import ToTensor
-from torch import Tensor
-import matplotlib.pyplot as plt
-import matplotlib
-import pdb
-import signal
 import hydra
+import matplotlib
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from typing import List
+from dataclasses import dataclass
+from omegaconf import DictConfig
+from visdom import server, Visdom
 
 
 matplotlib.use("tkagg")
 
 
-@hydra.main(config_path="configs/visdom.yaml")
-def make_visdom(cfg):
+@hydra.main(config_path="../configs", config_name="default.yaml")
+def make_visdom(cfg: DictConfig):
     vdb = Visualizer(cfg)
 
 
-class Visualizer:
-    def init(self, cfg):
+@dataclass
+class VisPlot:
+    var_name: str  # Field name in the engine state (i.e. engine.outputs.var_name)
+    plot_key: str  # Plot used to plot data. Non-existant plot key creates new plot
+    split: str  # Legend split
+    title: str = None  # Title
+    x_label: str = None
+    y_label: str = None
+    env: str = None
 
-        self.visdom_config = cfg
-        visdom_command = (
-            "screen -S visdom_"
-            + str(visdom_config["port"])
-            + ' -d -m bash -c "python -m visdom.server -port '
-            + str(visdom_config["port"])
-            + '"'
+
+@dataclass
+class VisImg:
+    var_name: str
+    caption: str = None
+    title: str = None
+    env: str = None
+
+
+class Visualizer:
+    def __init__(self, cfg: DictConfig):
+        self.cfg = cfg.visdom
+
+        visdom_command = 'screen -S visdom_{} -d -m bash -c "python -m visdom.server -port {}"'.format(
+            self.cfg.port, self.cfg.port
         )
+
+        os.mkdir("visdom")
         os.system(visdom_command)
         time.sleep(2)
-        self.env = cfg.env_name
-        self.vis = visdom.Visdom(
-            port=cfg.port,
-            log_to_filename="temp/" + cfg.log_to_filename,
-            offline=cfg.offline,
+        # self.env = self.cfg.default_env_name  # TODO: What is this
+        self.vis = Visdom(
+            port=self.cfg.port,
+            log_to_filename=os.path.join("visdom", self.cfg.log_to_filename),
+            offline=self.cfg.offline,
         )
         (self.x_min, self.x_max), (self.y_min, self.y_max) = (
-            (cfg.x_min, cfg.x_max),
-            (cfg.y_min, cfg.y_max),
+            (self.cfg.x_min, self.cfg.x_max),
+            (self.cfg.y_min, self.cfg.y_max),
         )
         self.counter = 0
         self.plots = {}
 
-    def img_result(self, img_list, nrow, caption="view", title="title", win=1):
+    def img_result(
+        self,
+        img_list: List[np.ndarray],
+        nrow: int,
+        caption: str = "view",
+        title: str = "title",
+        win: int = 1,
+        env: str = None,
+    ):
         self.vis.images(
-            img_list, nrow=nrow, win=win, opts={"caption": caption, "title": title}
+            img_list,
+            nrow=nrow,
+            win=win,
+            opts={"caption": caption, "title": title},
+            env=env,
         )
 
-    def plot_img_255(self, img, caption="view", title="view", win=1):
-        self.vis.image(img, win=win, opts={"caption": caption, "title": title})
+    def plot_img_255(
+        self,
+        img: np.ndarray,
+        caption: str = "view",
+        title: str = "view",
+        win: int = 1,
+        env: str = None,
+    ):
+        self.vis.image(img, win=win, opts={"caption": caption, "title": title}, env=env)
 
-    def plot_matplotlib(self, fig, caption="view", title="title", win=1):
+    def plot_matplotlib(self, fig, caption="view", title="title", win=1, env=None):
         self.vis.matplot(
-            fig, win=win, opts={"caption": caption, "title": title, "resizable": True}
+            fig,
+            win=win,
+            opts={"caption": caption, "title": title, "resizable": True},
+            env=env,
         )
 
-    def plot_plotly(self, fig, caption="view", title="title", win=1):
-        self.vis.plotlyplot(fig, win=win)
+    def plot_plotly(self, fig, caption="view", title="title", win=1, env=None):
+        self.vis.plotlyplot(fig, win=win, env=env)
 
-    def plot(self, var_name, split_name, title_name, x, y):
-        if var_name not in self.plots:
-            self.plots[var_name] = self.vis.line(
+    def plot(
+        self,
+        plot_key: str,
+        split_name: str,
+        title_name: str,
+        x: int,
+        y: int,
+        x_label: str = None,
+        y_label: str = None,
+        env: str = None,
+    ):
+
+        x_label = x_label or "Epochs"
+        y_label = y_label or split_name
+
+        if plot_key not in self.plots:
+            self.plots[plot_key] = self.vis.line(
                 X=np.array([x, x]),
                 Y=np.array([y, y]),
-                env=self.env,
+                env=env,
                 opts=dict(
                     legend=[split_name],
                     title=title_name,
-                    xlabel="Epochs",
-                    ylabel=var_name,
+                    xlabel=x_label,
+                    ylabel=y_label,
                 ),
             )
         else:
             self.vis.line(
                 X=np.array([x]),
                 Y=np.array([y]),
-                env=self.env,
-                win=self.plots[var_name],
+                env=env,
+                win=self.plots[plot_key],
                 name=split_name,
                 update="append",
             )
