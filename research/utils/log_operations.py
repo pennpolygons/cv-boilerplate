@@ -67,7 +67,9 @@ def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
             os.makedirs(os.path.join(engine.logger.name, field))
 
         if torch.is_tensor(value_dict[field]):
-            im = Image.fromarray(value_dict[field].numpy().astype(np.uint8))
+            im = Image.fromarray(
+                value_dict[field].detach().cpu().numpy().astype(np.uint8)
+            )
         else:
             im = Image.fromarray(value_dict[field].astype(np.uint8))
 

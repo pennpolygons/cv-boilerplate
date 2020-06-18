@@ -1,4 +1,3 @@
-
 import logging
 import hydra
 import torch
@@ -61,7 +60,7 @@ def create_training_loop(
             "nll_2": loss.item() + 0.5,
             "y_pred": y_pred,
             "y": y,
-            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze()
+            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze(),
         }
 
         return update_dict
@@ -93,10 +92,7 @@ def create_evaluation_loop(
             y_pred = model(x)
 
         # Anything you want to log must be returned in this dictionary
-        infer_dict = {
-            "y_pred": y_pred,
-            "y": y
-        }
+        infer_dict = {"y_pred": y_pred, "y": y}
 
         return infer_dict
 
@@ -108,14 +104,20 @@ def create_evaluation_loop(
     # Specify evaluation metrics. "output_transform" used to select items from "infer_dict" needed by metrics
     # https://pytorch.org/ignite/metrics.html#ignite.metrics.
     metrics = {
-        "accuracy": Accuracy(output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
-        "nll": Loss(loss_fn, output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])),
+        "accuracy": Accuracy(
+            output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"])
+        ),
+        "nll": Loss(
+            loss_fn,
+            output_transform=lambda infer_dict: (infer_dict["y_pred"], infer_dict["y"]),
+        ),
     }
 
     for name, metric in metrics.items():
         metric.attach(engine, name)
 
     return engine
+
 
 ########################################################################
 # Main training loop
@@ -136,10 +138,10 @@ def train(cfg: DictConfig) -> None:
     train_loader, val_loader = get_dataloaders(cfg, num_workers=cfg.data_loader_workers)
 
     # Your training loop
-    trainer = create_training_loop(model, cfg, "trainer", device=device)    
+    trainer = create_training_loop(model, cfg, "trainer", device=device)
     # Your evaluation loop
     evaluator = create_evaluation_loop(model, cfg, "evaluator", device=device)
-    
+
     ########################################################################
     # Logging Callbacks
     ########################################################################
@@ -147,7 +149,6 @@ def train(cfg: DictConfig) -> None:
     #!!!! Required. Do not change. !!!!#
     trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
     evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
-
 
     # Perform various log operations on the "trainer" engine output every 50 iterations
     trainer.add_event_handler(
@@ -167,13 +168,27 @@ def train(cfg: DictConfig) -> None:
                     VisImg("im", caption="caption", title="title", env="images")
                 ],
                 # Plot fields to Visdom
-                LOG_OP.NUMBER_TO_VISDOM: [                         
-                    # First plot, key is "p1"                 
-                    VisPlot("nll", plot_key="p1", split="nll_1", title="Plot 1", x_label="Iters", y_label="nll"),
+                LOG_OP.NUMBER_TO_VISDOM: [
+                    # First plot, key is "p1"
+                    VisPlot(
+                        "nll",
+                        plot_key="p1",
+                        split="nll_1",
+                        title="Plot 1",
+                        x_label="Iters",
+                        y_label="nll",
+                    ),
                     VisPlot("nll_2", plot_key="p1", split="nll_2"),
                     # Second plot, key is "p2"
-                    VisPlot("nll", plot_key="p2", split="nll", title="Plot 2", x_label="foobar", y_label="hooplah"),
-                ] 
+                    VisPlot(
+                        "nll",
+                        plot_key="p2",
+                        split="nll",
+                        title="Plot 2",
+                        x_label="foobar",
+                        y_label="hooplah",
+                    ),
+                ],
             },
         ),
     )
@@ -188,8 +203,13 @@ def train(cfg: DictConfig) -> None:
             evaluator,
             val_loader,
             {
-                LOG_OP.LOG_MESSAGE: ["nll", "accuracy"],    # Log fields as message in logfile
-                LOG_OP.SAVE_IN_DATA_FILE: ["accuracy"],     # Log fields as separate data files
+                LOG_OP.LOG_MESSAGE: [
+                    "nll",
+                    "accuracy",
+                ],  # Log fields as message in logfile
+                LOG_OP.SAVE_IN_DATA_FILE: [
+                    "accuracy"
+                ],  # Log fields as separate data files
             },
         ),
     )
