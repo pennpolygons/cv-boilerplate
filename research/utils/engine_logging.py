@@ -20,6 +20,18 @@ def _lf_one(
     )
 
 
+def _lf_switch(
+    log_fn: Callable[[Engine, LOG_OP_ARGS], None],
+    log_ops: List[Tuple[LOG_OP, LOG_OP_ARGS]],
+    inner_engine: Engine,
+    **kwargs
+) -> Callable[[Engine], Any]:
+    """Returns a lambda calling custom log function with two engines (e.g. the training loop and validation loop)"""
+    return lambda outer_engine: log_fn(
+        inner_engine, log_ops, epoch_num=outer_engine.state.epoch, **kwargs
+    )
+
+
 def _lf_two(
     log_fn: Callable[[Engine, LOG_OP_ARGS], None],
     inner_engine: Engine,

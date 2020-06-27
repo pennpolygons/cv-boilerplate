@@ -12,6 +12,7 @@ from dataset import get_dataloaders
 from networks import get_network
 from utils.visdom_utils import Visualizer, VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
+from utils.LogDirector import LogDirector
 
 from utils.engine_logging import (
     _lf_one,
@@ -129,7 +130,7 @@ def train(cfg: DictConfig) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Spin up visdom
-    vis = Visualizer(cfg)
+    # vis = Visualizer(cfg)
 
     # Model
     model = get_network(cfg)
@@ -142,85 +143,119 @@ def train(cfg: DictConfig) -> None:
     # Your evaluation loop
     evaluator = create_evaluation_loop(model, cfg, "evaluator", device=device)
 
+    ld = LogDirector(cfg, engines=[trainer, evaluator])
+
     ########################################################################
     # Logging Callbacks
     ########################################################################
 
-    #!!!! Required. Do not change. !!!!#
-    trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
-    evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
+    def run_evaluator():
+        evaluator.run(val_loader)
+        return evaluator
 
-    # Perform various log operations on the "trainer" engine output every 50 iterations
-    trainer.add_event_handler(
+    ld.set_event_handlers(
+        trainer,
         Events.ITERATION_COMPLETED(every=50),
-        # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
-        _lf_one(
-            log_engine_output,
-            [
-                # Save image to folder
-                (LOG_OP.SAVE_IMAGE, ["im"]),
-                # Log fields as message in logfile
-                (LOG_OP.LOG_MESSAGE, ["nll"]),
-                # Log fields as separate data files
-                (LOG_OP.SAVE_IN_DATA_FILE, ["nll"]),
-                # Display image in Visdom
-                (
-                    LOG_OP.IMAGE_TO_VISDOM,
-                    [VisImg("im", caption="caption", title="title", env="images")],
-                ),
-                # Plot fields to Visdom
-                (
-                    LOG_OP.NUMBER_TO_VISDOM,
-                    [
-                        # First plot, key is "p1"
-                        VisPlot(
-                            "nll",
-                            plot_key="p1",
-                            split="nll_1",
-                            title="Plot 1",
-                            x_label="Iters",
-                            y_label="nll",
-                        ),
-                        VisPlot("nll_2", plot_key="p1", split="nll_2"),
-                        # Second plot, key is "p2"
-                        VisPlot(
-                            "nll",
-                            plot_key="p2",
-                            split="nll",
-                            title="Plot 2",
-                            x_label="foobar",
-                            y_label="hooplah",
-                        ),
-                    ],
-                ),
-            ],
-        ),
+        "output",
+        [
+            (LOG_OP.SAVE_IMAGE, ["im"]),
+            (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
+            (LOG_OP.SAVE_IN_DATA_FILE, ["nll"],),  # Log fields as separate data files
+        ],
     )
 
-    # Perform various log operations on metrics collected in the "evaluator" engine output every epoch
-    trainer.add_event_handler(
-        Events.EPOCH_COMPLETED,
-        # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "run_engine_and_log_metrics"
-        _lf_two(
-            # Run the "evaluator" engine (i.e. evaluation loop) on "val_loader" and log metrics
-            run_engine_and_log_metrics,
-            evaluator,
-            val_loader,
-            [
-                (
-                    LOG_OP.LOG_MESSAGE,
-                    ["nll", "accuracy",],
-                ),  # Log fields as message in logfile
-                (
-                    LOG_OP.SAVE_IN_DATA_FILE,
-                    ["accuracy"],
-                ),  # Log fields as separate data files
-            ],
-        ),
-    )
+    # ld.set_event_handlers(
+    #     trainer,
+    #     Events.EPOCH_COMPLETED,
+    #     "metrics",
+    #     [
+    #         (
+    #             LOG_OP.LOG_MESSAGE,
+    #             ["nll", "accuracy",],
+    #         ),  # Log fields as message in logfile
+    #         (
+    #             LOG_OP.SAVE_IN_DATA_FILE,
+    #             ["accuracy"],
+    #         ),  # Log fields as separate data files
+    #     ],
+    #     pre_op=run_evaluator,
+    # )
 
     # Execute training
     trainer.run(train_loader, max_epochs=cfg.mode.train.max_epochs)
+
+    #!!!! Required. Do not change. !!!!#
+    # trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
+    # evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
+
+    # Perform various log operations on the "trainer" engine output every 50 iterations
+    # trainer.add_event_handler(
+    #     Events.ITERATION_COMPLETED(every=50),
+    #     # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
+    #     _lf_one(
+    #         log_engine_output,
+    #         [
+    #             # Save image to folder
+    #             (LOG_OP.SAVE_IMAGE, ["im"]),
+    #             # Log fields as message in logfile
+    #             (LOG_OP.LOG_MESSAGE, ["nll"]),
+    #             # Log fields as separate data files
+    #             (LOG_OP.SAVE_IN_DATA_FILE, ["nll"]),
+    #             # Display image in Visdom
+    #             (
+    #                 LOG_OP.IMAGE_TO_VISDOM,
+    #                 [VisImg("im", caption="caption", title="title", env="images")],
+    #             ),
+    #             # Plot fields to Visdom
+    #             (
+    #                 LOG_OP.NUMBER_TO_VISDOM,
+    #                 [
+    #                     # First plot, key is "p1"
+    #                     VisPlot(
+    #                         "nll",
+    #                         plot_key="p1",
+    #                         split="nll_1",
+    #                         title="Plot 1",
+    #                         x_label="Iters",
+    #                         y_label="nll",
+    #                     ),
+    #                     VisPlot("nll_2", plot_key="p1", split="nll_2"),
+    #                     # Second plot, key is "p2"
+    #                     VisPlot(
+    #                         "nll",
+    #                         plot_key="p2",
+    #                         split="nll",
+    #                         title="Plot 2",
+    #                         x_label="foobar",
+    #                         y_label="hooplah",
+    #                     ),
+    #                 ],
+    #             ),
+    #         ],
+    #     ),
+    # )
+
+    # Perform various log operations on metrics collected in the "evaluator" engine output every epoch
+    # trainer.add_event_handler(
+    #     Events.EPOCH_COMPLETED,
+    #     # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "run_engine_and_log_metrics"
+    #     _lf_two(
+    #         # Run the "evaluator" engine (i.e. evaluation loop) on "val_loader" and log metrics
+    #         run_engine_and_log_metrics,
+    #         evaluator,
+    #         val_loader,
+    #         [
+    #             (
+    #                 LOG_OP.LOG_MESSAGE,
+    #                 ["nll", "accuracy",],
+    #             ),  # Log fields as message in logfile
+    #             (
+    #                 LOG_OP.SAVE_IN_DATA_FILE,
+    #                 ["accuracy"],
+    #             ),  # Log fields as separate data files
+    #         ],
+    #     ),
+    # )
 
 
 if __name__ == "__main__":

@@ -46,7 +46,9 @@ def _to_log(
     engine.logger.info(log_str)
 
 
-def _to_file(engine: Engine, fields: List[str], engine_attr: str) -> None:
+def _to_file(
+    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None
+) -> None:
     """Save engine output fields as separate binary data files"""
     value_dict = getattr(engine.state, engine_attr)
 
@@ -57,7 +59,9 @@ def _to_file(engine: Engine, fields: List[str], engine_attr: str) -> None:
         engine.state.fp[field].write(struct.pack("f", value_dict[field]))
 
 
-def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
+def _to_img(
+    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None
+) -> None:
     """Save engine output fields as images"""
     value_dict = getattr(engine.state, engine_attr)
 
