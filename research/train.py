@@ -10,22 +10,10 @@ from ignite.metrics import Accuracy, Loss
 
 from dataset import get_dataloaders
 from networks import get_network
+from utils.log_operations import LOG_OP
 from utils.visdom_utils import Visualizer, VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
-from utils.LogDirector import LogDirector
-
-from utils.engine_logging import (
-    _lf_one,
-    _lf_two,
-    log_engine_output,
-    run_engine_and_log_metrics,
-    LOG_OP,
-)
-
-
-def startup_engine(engine: Engine, vis: Visualizer = None) -> None:
-    engine.state.fp = {}
-    engine.state.vis = vis
+from utils.LogDirector import LogDirector, EngineStateAttr, LogTimeLabel
 
 
 def create_training_loop(
@@ -129,9 +117,6 @@ def train(cfg: DictConfig) -> None:
     # Determine device (GPU, CPU, etc.)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Spin up visdom
-    # vis = Visualizer(cfg)
-
     # Model
     model = get_network(cfg)
 
@@ -156,7 +141,7 @@ def train(cfg: DictConfig) -> None:
     ld.set_event_handlers(
         trainer,
         Events.ITERATION_COMPLETED(every=50),
-        "output",
+        EngineStateAttr.OUTPUT,
         [
             (LOG_OP.SAVE_IMAGE, ["im"]),
             (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
@@ -164,22 +149,22 @@ def train(cfg: DictConfig) -> None:
         ],
     )
 
-    # ld.set_event_handlers(
-    #     trainer,
-    #     Events.EPOCH_COMPLETED,
-    #     "metrics",
-    #     [
-    #         (
-    #             LOG_OP.LOG_MESSAGE,
-    #             ["nll", "accuracy",],
-    #         ),  # Log fields as message in logfile
-    #         (
-    #             LOG_OP.SAVE_IN_DATA_FILE,
-    #             ["accuracy"],
-    #         ),  # Log fields as separate data files
-    #     ],
-    #     pre_op=run_evaluator,
-    # )
+    ld.set_event_handlers(
+        trainer,
+        Events.EPOCH_COMPLETED,
+        EngineStateAttr.METRICS,
+        [
+            (
+                LOG_OP.LOG_MESSAGE,
+                ["nll", "accuracy",],
+            ),  # Log fields as message in logfile
+            (
+                LOG_OP.SAVE_IN_DATA_FILE,
+                ["accuracy"],
+            ),  # Log fields as separate data files
+        ],
+        pre_op=run_evaluator,
+    )
 
     # Execute training
     trainer.run(train_loader, max_epochs=cfg.mode.train.max_epochs)
@@ -217,7 +202,6 @@ def train(cfg: DictConfig) -> None:
     #                         split="nll_1",
     #                         title="Plot 1",
     #                         x_label="Iters",
-    #                         y_label="nll",
     #                     ),
     #                     VisPlot("nll_2", plot_key="p1", split="nll_2"),
     #                     # Second plot, key is "p2"

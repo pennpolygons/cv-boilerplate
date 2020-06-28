@@ -8,12 +8,11 @@ from enum import Enum
 from typing import Callable, List, Dict
 from ignite.engine import Events, Engine
 from utils.helpers import tern
-from utils.image_utils import convert_cwh_to_whc
 from utils.visdom_utils import Visualizer, VisPlot, VisImg
 
 
 def _to_stdout(
-    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None, iter_num=None
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
 ) -> None:
     """Prints string formatted engine output fields to stdout"""
     value_dict = getattr(engine.state, engine_attr)
@@ -21,16 +20,12 @@ def _to_stdout(
     log_str = "  ".join(
         ["{}: {:.3f}".format(field, value_dict[field]) for field in fields]
     )
-    log_str = "Epoch[{:d}], Iter[{:d}] | {}".format(
-        tern(epoch_num, engine.state.epoch),
-        tern(iter_num, engine.state.iteration),
-        log_str,
-    )
+    log_str = "{} | {}".format(time_label, log_str,)
     print(log_str)
 
 
 def _to_log(
-    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None, iter_num=None,
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
 ) -> None:
     """Logs string formatted engine output fields to logfile"""
     value_dict = getattr(engine.state, engine_attr)
@@ -38,16 +33,12 @@ def _to_log(
     log_str = "  ".join(
         ["{}: {:.3f}".format(field, value_dict[field]) for field in fields]
     )
-    log_str = "Epoch[{:d}], Iter[{:d}] | {}".format(
-        tern(epoch_num, engine.state.epoch),
-        tern(iter_num, engine.state.iteration),
-        log_str,
-    )
+    log_str = "{} | {}".format(time_label, log_str,)
     engine.logger.info(log_str)
 
 
 def _to_file(
-    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str
 ) -> None:
     """Save engine output fields as separate binary data files"""
     value_dict = getattr(engine.state, engine_attr)
@@ -60,7 +51,7 @@ def _to_file(
 
 
 def _to_img(
-    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str
 ) -> None:
     """Save engine output fields as images"""
     value_dict = getattr(engine.state, engine_attr)
@@ -89,21 +80,10 @@ def _to_img(
 
 
 def _number_to_visdom(
-    engine: Engine,
-    vis: Visualizer,
-    vis_plot_msgs: List[VisPlot],
-    engine_attr: str,
-    x_value: int = None,
+    engine: Engine, vis: Visualizer, vis_plot_msgs: List[VisPlot], engine_attr: str,
 ) -> None:
     """Save engine output to Visdom server"""
     value_dict = getattr(engine.state, engine_attr)
-
-    if x_value is None:
-        # TODO: [29]https://github.com/pennpolygons/cv-boilerplate/issues/29
-        # Should support logging epoch, global iteration, etc
-        x_value = (
-            engine.state.epoch_length * engine.state.epoch + engine.state.iteration
-        )
 
     for msg in vis_plot_msgs:
         vis.plot(

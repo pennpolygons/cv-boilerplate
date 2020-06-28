@@ -1,9 +1,9 @@
+from enum import Enum
 from omegaconf import DictConfig
 from ignite.contrib.handlers.tensorboard_logger import *
 from ignite.engine import Engine, Events
 
 from utils.visdom_utils import Visualizer, VisPlot, VisImg
-from utils.engine_logging import _lf_one, _lf_switch
 from utils.log_operations import LOG_OP
 
 from typing import Callable, List, Dict, Any, Union, Tuple
@@ -12,9 +12,29 @@ from typing import Callable, List, Dict, Any, Union, Tuple
 LOG_OP_ARGS = Union[List[str], List[VisPlot], List[VisImg]]
 
 
-class LogDirector:
-    pass
+class LogTimeLabel(Enum):
+    CUR_ITER_IN_EPOCH = lambda engine: (
+        engine.state.iteration,
+        "Epoch[{:d}], Iter[{:d}]".format(engine.state.epoch, engine.state.iteration),
+    )
+    GLOBAL_ITER = lambda engine: (
+        engine.state.epoch_length * engine.state.epoch + engine.state.iteration,
+        "Iter[{:d}]".format(
+            engine.state.epoch_length * engine.state.epoch + engine.state.iteration
+        ),
+    )
+    CUR_EPOCH = lambda engine: (
+        engine.state.epoch,
+        "Epoch[{:d}]".format(engine.state.epoch),
+    )
 
+
+class EngineStateAttr(Enum):
+    METRICS = "metrics"  # engine.state.metrics
+    OUTPUT = "output"  # engine.state.output
+
+
+class LogDirector:
     def __init__(self, cfg: DictConfig, engines: List[Engine] = None):
         # TODO: Set up a Tensorboard contrib.handler
         self.tb_writer = None
@@ -45,22 +65,20 @@ class LogDirector:
         self,
         engine: Engine,
         event: Events,
-        engine_attr: str,
+        engine_attr: EngineStateAttr,
         log_operations: List[Tuple[LOG_OP, LOG_OP_ARGS]],
+        log_time_label: LogTimeLabel = LogTimeLabel.CUR_ITER_IN_EPOCH,
         pre_op: Callable[[Any], Engine] = None,
     ):
-        # Log operations on the calling engine
-
         engine.add_event_handler(
             event,
             lambda engine: [
                 log_op(
-                    engine,
+                    pre_op() if pre_op else engine,
                     op_args,
-                    engine_attr=engine_attr,
-                    epoch_num=engine.state.epoch,
+                    engine_attr=engine_attr.value,
+                    time_label=log_time_label(engine)[1],
                 )
                 for log_op, op_args in log_operations
             ],
         )
-
