@@ -13,13 +13,18 @@ LOG_OP_ARGS = Union[List[str], List[VisPlot], List[VisImg]]
 
 
 class LogTimeLabel(Enum):
+    
+    @classmethod
+    def global_iteration(engine: Engine):
+        return engine.state.epoch_length * engine.state.epoch + engine.state.iteration
+
     CUR_ITER_IN_EPOCH = lambda engine: (
-        engine.state.iteration,
+        global_iteration(engine)
         "Epoch[{:d}], Iter[{:d}]".format(engine.state.epoch, engine.state.iteration),
     )
     GLOBAL_ITER = lambda engine: (
-        engine.state.epoch_length * engine.state.epoch + engine.state.iteration,
-        "Iter[{:d}]".format(
+        global_iteration(engine)
+        "Global Iter[{:d}]".format(
             engine.state.epoch_length * engine.state.epoch + engine.state.iteration
         ),
     )
@@ -70,15 +75,28 @@ class LogDirector:
         log_time_label: LogTimeLabel = LogTimeLabel.CUR_ITER_IN_EPOCH,
         pre_op: Callable[[Any], Engine] = None,
     ):
-        engine.add_event_handler(
-            event,
-            lambda engine: [
+
+        log_op_callables = lambda engine: [
+            (
                 log_op(
                     pre_op() if pre_op else engine,
+                    self.vis,
                     op_args,
                     engine_attr=engine_attr.value,
-                    time_label=log_time_label(engine)[1],
+                    time_label=log_time_label(engine)[0],
                 )
-                for log_op, op_args in log_operations
-            ],
-        )
+            )
+            if log_op is LOG_OP.NUMBER_TO_VISDOM or log_op is LOG_OP.IMAGE_TO_VISDOM
+            else log_op(
+                pre_op() if pre_op else engine,
+                op_args,
+                engine_attr=engine_attr.value,
+                time_label=log_time_label(engine)[1],
+            )
+            for log_op, op_args in log_operations
+        ]
+
+        # Bind the callables list to the event handler
+        engine.add_event_handler(event, log_op_callables)
+
+        lambda engine: preop() if pre_op else engine

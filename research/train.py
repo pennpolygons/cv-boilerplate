@@ -134,6 +134,7 @@ def train(cfg: DictConfig) -> None:
     # Logging Callbacks
     ########################################################################
 
+    # Helper to run the evaluation loop
     def run_evaluator():
         evaluator.run(val_loader)
         return evaluator
@@ -146,6 +147,37 @@ def train(cfg: DictConfig) -> None:
             (LOG_OP.SAVE_IMAGE, ["im"]),
             (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
             (LOG_OP.SAVE_IN_DATA_FILE, ["nll"],),  # Log fields as separate data files
+            (
+                LOG_OP.NUMBER_TO_VISDOM,
+                [
+                    # First plot, key is "p1"
+                    VisPlot(
+                        var_name="nll",
+                        plot_key="p1",
+                        split="nll_1",
+                        # Any opts that Visdom supports
+                        opts={"title": "Plot 1", "xlabel": "Iters", "fillarea": True},
+                    ),
+                    VisPlot(var_name="nll_2", plot_key="p1", split="nll_2",),
+                ],
+            ),
+            (
+                LOG_OP.IMAGE_TO_VISDOM,
+                [
+                    VisImg(
+                        var_name="im",
+                        img_key="1",
+                        env="images",
+                        opts={"caption": "a current image", "title": "title"},
+                    ),
+                    VisImg(
+                        var_name="im",
+                        img_key="2",
+                        env="images",
+                        opts={"caption": "a current image", "title": "title"},
+                    ),
+                ],
+            ),
         ],
     )
 
@@ -162,84 +194,26 @@ def train(cfg: DictConfig) -> None:
                 LOG_OP.SAVE_IN_DATA_FILE,
                 ["accuracy"],
             ),  # Log fields as separate data files
+            (
+                LOG_OP.NUMBER_TO_VISDOM,
+                [
+                    # First plot, key is "p1"
+                    VisPlot(
+                        var_name="accuracy",
+                        plot_key="p3",
+                        split="acc",
+                        # Any opts that Visdom supports
+                        opts={"title": "Plot Acc", "xlabel": "Iters", "fillarea": True},
+                    ),
+                ],
+            ),
         ],
+        # Run the evaluation loop, then do log operations from the return engine
         pre_op=run_evaluator,
     )
 
     # Execute training
     trainer.run(train_loader, max_epochs=cfg.mode.train.max_epochs)
-
-    #!!!! Required. Do not change. !!!!#
-    # trainer.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
-    # evaluator.add_event_handler(Events.STARTED, lambda _: startup_engine(_, vis=vis))
-
-    # Perform various log operations on the "trainer" engine output every 50 iterations
-    # trainer.add_event_handler(
-    #     Events.ITERATION_COMPLETED(every=50),
-    #     # The function _lf_one() is required to pass the "trainer" engine to "log_engine_output"
-    #     _lf_one(
-    #         log_engine_output,
-    #         [
-    #             # Save image to folder
-    #             (LOG_OP.SAVE_IMAGE, ["im"]),
-    #             # Log fields as message in logfile
-    #             (LOG_OP.LOG_MESSAGE, ["nll"]),
-    #             # Log fields as separate data files
-    #             (LOG_OP.SAVE_IN_DATA_FILE, ["nll"]),
-    #             # Display image in Visdom
-    #             (
-    #                 LOG_OP.IMAGE_TO_VISDOM,
-    #                 [VisImg("im", caption="caption", title="title", env="images")],
-    #             ),
-    #             # Plot fields to Visdom
-    #             (
-    #                 LOG_OP.NUMBER_TO_VISDOM,
-    #                 [
-    #                     # First plot, key is "p1"
-    #                     VisPlot(
-    #                         "nll",
-    #                         plot_key="p1",
-    #                         split="nll_1",
-    #                         title="Plot 1",
-    #                         x_label="Iters",
-    #                     ),
-    #                     VisPlot("nll_2", plot_key="p1", split="nll_2"),
-    #                     # Second plot, key is "p2"
-    #                     VisPlot(
-    #                         "nll",
-    #                         plot_key="p2",
-    #                         split="nll",
-    #                         title="Plot 2",
-    #                         x_label="foobar",
-    #                         y_label="hooplah",
-    #                     ),
-    #                 ],
-    #             ),
-    #         ],
-    #     ),
-    # )
-
-    # Perform various log operations on metrics collected in the "evaluator" engine output every epoch
-    # trainer.add_event_handler(
-    #     Events.EPOCH_COMPLETED,
-    #     # The function _lf_two() is required to pass the "trainer" and "evaluator" engines to "run_engine_and_log_metrics"
-    #     _lf_two(
-    #         # Run the "evaluator" engine (i.e. evaluation loop) on "val_loader" and log metrics
-    #         run_engine_and_log_metrics,
-    #         evaluator,
-    #         val_loader,
-    #         [
-    #             (
-    #                 LOG_OP.LOG_MESSAGE,
-    #                 ["nll", "accuracy",],
-    #             ),  # Log fields as message in logfile
-    #             (
-    #                 LOG_OP.SAVE_IN_DATA_FILE,
-    #                 ["accuracy"],
-    #             ),  # Log fields as separate data files
-    #         ],
-    #     ),
-    # )
 
 
 if __name__ == "__main__":
