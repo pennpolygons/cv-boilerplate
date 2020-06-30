@@ -78,14 +78,13 @@ class LogDirector:
         log_time_label: LogTimeLabel = LogTimeLabel.CUR_ITER_IN_EPOCH,
         pre_op: Callable[[Any], Engine] = None,
     ):
-        def _log_op_callables(engine: Engine):
+        def _do_all_log_operations(engine: Engine):
             engine_to_log_from = pre_op() if pre_op else engine
             for log_op, op_args in log_operations:
                 if (
                     log_op is LOG_OP.NUMBER_TO_VISDOM
                     or log_op is LOG_OP.IMAGE_TO_VISDOM
                 ):
-
                     log_op(
                         engine_to_log_from,
                         self.vis,
@@ -94,7 +93,6 @@ class LogDirector:
                         # Always use event attached engine for time_label
                         time_label=log_time_label(engine)["int_label"],
                     )
-
                 else:
                     log_op(
                         engine_to_log_from,
@@ -105,4 +103,4 @@ class LogDirector:
                     )
 
         # Bind the callables list to the event handler
-        engine.add_event_handler(event, _log_op_callables)
+        engine.add_event_handler(event, _do_all_log_operations)
