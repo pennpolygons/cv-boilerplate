@@ -13,25 +13,28 @@ LOG_OP_ARGS = Union[List[str], List[VisPlot], List[VisImg]]
 
 
 class LogTimeLabel(Enum):
-    
     @classmethod
-    def global_iteration(engine: Engine):
+    def global_iteration(cls, engine: Engine):
         return engine.state.epoch_length * engine.state.epoch + engine.state.iteration
 
-    CUR_ITER_IN_EPOCH = lambda engine: (
-        global_iteration(engine)
-        "Epoch[{:d}], Iter[{:d}]".format(engine.state.epoch, engine.state.iteration),
-    )
-    GLOBAL_ITER = lambda engine: (
-        global_iteration(engine)
-        "Global Iter[{:d}]".format(
+    CUR_ITER_IN_EPOCH = lambda engine: {
+        "int_label": LogTimeLabel.global_iteration(engine),
+        "str_label": "Epoch[{:d}], Iter[{:d}]".format(
+            engine.state.epoch, engine.state.iteration
+        ),
+    }
+
+    GLOBAL_ITER = lambda engine: {
+        "int_label": LogTimeLabel.global_iteration(engine),
+        "str_label": "Global Iter[{:d}]".format(
             engine.state.epoch_length * engine.state.epoch + engine.state.iteration
         ),
-    )
-    CUR_EPOCH = lambda engine: (
-        engine.state.epoch,
-        "Epoch[{:d}]".format(engine.state.epoch),
-    )
+    }
+
+    CUR_EPOCH = lambda engine: {
+        "int_label": engine.state.epoch,
+        "str_label": "Epoch[{:d}]".format(engine.state.epoch),
+    }
 
 
 class EngineStateAttr(Enum):
@@ -75,28 +78,31 @@ class LogDirector:
         log_time_label: LogTimeLabel = LogTimeLabel.CUR_ITER_IN_EPOCH,
         pre_op: Callable[[Any], Engine] = None,
     ):
+        def _log_op_callables(engine: Engine):
+            engine_to_log_from = pre_op() if pre_op else engine
+            for log_op, op_args in log_operations:
+                if (
+                    log_op is LOG_OP.NUMBER_TO_VISDOM
+                    or log_op is LOG_OP.IMAGE_TO_VISDOM
+                ):
 
-        log_op_callables = lambda engine: [
-            (
-                log_op(
-                    pre_op() if pre_op else engine,
-                    self.vis,
-                    op_args,
-                    engine_attr=engine_attr.value,
-                    time_label=log_time_label(engine)[0],
-                )
-            )
-            if log_op is LOG_OP.NUMBER_TO_VISDOM or log_op is LOG_OP.IMAGE_TO_VISDOM
-            else log_op(
-                pre_op() if pre_op else engine,
-                op_args,
-                engine_attr=engine_attr.value,
-                time_label=log_time_label(engine)[1],
-            )
-            for log_op, op_args in log_operations
-        ]
+                    log_op(
+                        engine_to_log_from,
+                        self.vis,
+                        op_args,
+                        engine_attr=engine_attr.value,
+                        # Always use event attached engine for time_label
+                        time_label=log_time_label(engine)["int_label"],
+                    )
+
+                else:
+                    log_op(
+                        engine_to_log_from,
+                        op_args,
+                        engine_attr=engine_attr.value,
+                        # Always use event attached engine for time_label
+                        time_label=log_time_label(engine)["str_label"],
+                    )
 
         # Bind the callables list to the event handler
-        engine.add_event_handler(event, log_op_callables)
-
-        lambda engine: preop() if pre_op else engine
+        engine.add_event_handler(event, _log_op_callables)

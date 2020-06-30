@@ -15,13 +15,15 @@ def _to_stdout(
     engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
 ) -> None:
     """Prints string formatted engine output fields to stdout"""
-    log_str = "  ".join(
-        [
-            "{}: {:.3f}".format(field, getattr(engine.state, engine_attr)[field])
-            for field in fields
-        ]
+    log_str = "{} | {}".format(
+        time_label,
+        "  ".join(
+            [
+                "{}: {:.3f}".format(field, getattr(engine.state, engine_attr)[field])
+                for field in fields
+            ]
+        ),
     )
-    log_str = "{} | {}".format(time_label, log_str,)
     print(log_str)
 
 
@@ -29,13 +31,15 @@ def _to_log(
     engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
 ) -> None:
     """Logs string formatted engine output fields to logfile"""
-    log_str = "  ".join(
-        [
-            "{}: {:.3f}".format(field, getattr(engine.state, engine_attr)[field])
-            for field in fields
-        ]
+    log_str = "{} | {}".format(
+        time_label,
+        "  ".join(
+            [
+                "{}: {:.3f}".format(field, getattr(engine.state, engine_attr)[field])
+                for field in fields
+            ]
+        ),
     )
-    log_str = "{} | {}".format(time_label, log_str,)
     engine.logger.info(log_str)
 
 

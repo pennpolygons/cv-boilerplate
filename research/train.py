@@ -11,7 +11,7 @@ from ignite.metrics import Accuracy, Loss
 from dataset import get_dataloaders
 from networks import get_network
 from utils.log_operations import LOG_OP
-from utils.visdom_utils import Visualizer, VisPlot, VisImg
+from utils.visdom_utils import VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
 from utils.LogDirector import LogDirector, EngineStateAttr, LogTimeLabel
 
@@ -137,14 +137,14 @@ def train(cfg: DictConfig) -> None:
     # Helper to run the evaluation loop
     def run_evaluator():
         evaluator.run(val_loader)
-        return evaluator
+        return evaluator  # NOTE: Must return the engine we want to log from
 
     ld.set_event_handlers(
         trainer,
         Events.ITERATION_COMPLETED(every=50),
         EngineStateAttr.OUTPUT,
         [
-            (LOG_OP.SAVE_IMAGE, ["im"]),
+            (LOG_OP.SAVE_IMAGE, ["im"]),  # Save images to a folder
             (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
             (LOG_OP.SAVE_IN_DATA_FILE, ["nll"],),  # Log fields as separate data files
             (
@@ -203,7 +203,15 @@ def train(cfg: DictConfig) -> None:
                         plot_key="p3",
                         split="acc",
                         # Any opts that Visdom supports
-                        opts={"title": "Plot Acc", "xlabel": "Iters", "fillarea": True},
+                        opts={"title": "Eval Acc", "xlabel": "Iters"},
+                    ),
+                    # First plot, key is "p1"
+                    VisPlot(
+                        var_name="nll",
+                        plot_key="p4",
+                        split="nll",
+                        # Any opts that Visdom supports
+                        opts={"title": "Eval Nll", "xlabel": "Iters", "fillarea": True},
                     ),
                 ],
             ),
