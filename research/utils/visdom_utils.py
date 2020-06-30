@@ -6,8 +6,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import List
-from dataclasses import dataclass
+from typing import Dict, List
+from dataclasses import dataclass, field
 from omegaconf import DictConfig
 from visdom import server, Visdom
 
@@ -22,21 +22,26 @@ def make_visdom(cfg: DictConfig):
 
 @dataclass
 class VisPlot:
+    ######## Required for Visdom line plot ########
+
     var_name: str  # Field name in the engine state (i.e. engine.outputs.var_name)
     plot_key: str  # Plot used to plot data. Non-existant plot key creates new plot
     split: str  # Legend split
-    title: str = None  # Title
-    x_label: str = None
-    y_label: str = None
-    env: str = None
+
+    ################################################
+    env: str = None  # leads to Visdom default "main" env
+    opts: field(default_factory=dict) = None
 
 
 @dataclass
 class VisImg:
+    ######## Required for Visdom image ########
+
     var_name: str
-    caption: str = None
-    title: str = None
-    env: str = None
+    img_key: str
+    ################################################
+    env: str = None  # leads to Visdom default "main" env
+    opts: field(default_factory=dict) = None
 
 
 class Visualizer:
@@ -81,14 +86,10 @@ class Visualizer:
         )
 
     def plot_img_255(
-        self,
-        img: np.ndarray,
-        caption: str = "view",
-        title: str = "view",
-        win: int = 1,
-        env: str = None,
+        self, img_key: str, img: np.ndarray, env: str = None, opts: Dict = None,
     ):
-        self.vis.image(img, win=win, opts={"caption": caption, "title": title}, env=env)
+        """Visdom plot a single image (channels-first CxHxW)"""
+        self.vis.image(img, win=img_key, opts=opts, env=env)
 
     def plot_matplotlib(self, fig, caption="view", title="title", win=1, env=None):
         self.vis.matplot(
@@ -105,28 +106,18 @@ class Visualizer:
         self,
         plot_key: str,
         split_name: str,
-        title_name: str,
         x: int,
         y: int,
-        x_label: str = None,
-        y_label: str = None,
         env: str = None,
+        opts: Dict = None,
     ):
-
-        x_label = x_label or "Epochs"
-        y_label = y_label or split_name
-
+        """Visdom plot line data"""
         if plot_key not in self.plots:
             self.plots[plot_key] = self.vis.line(
                 X=np.array([x, x]),
                 Y=np.array([y, y]),
                 env=env,
-                opts=dict(
-                    legend=[split_name],
-                    title=title_name,
-                    xlabel=x_label,
-                    ylabel=y_label,
-                ),
+                opts={**opts, "legend": [split_name]},
             )
         else:
             self.vis.line(

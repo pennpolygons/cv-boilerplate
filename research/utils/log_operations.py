@@ -8,56 +8,57 @@ from enum import Enum
 from typing import Callable, List, Dict
 from ignite.engine import Events, Engine
 from utils.helpers import tern
-from utils.image_utils import convert_cwh_to_whc
 from utils.visdom_utils import Visualizer, VisPlot, VisImg
 
 
 def _to_stdout(
-    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None, iter_num=None
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
 ) -> None:
     """Prints string formatted engine output fields to stdout"""
-    value_dict = getattr(engine.state, engine_attr)
-
-    log_str = "  ".join(
-        ["{}: {:.3f}".format(field, value_dict[field]) for field in fields]
-    )
-    log_str = "Epoch[{:d}], Iter[{:d}] | {}".format(
-        tern(epoch_num, engine.state.epoch),
-        tern(iter_num, engine.state.iteration),
-        log_str,
+    log_str = "{} | {}".format(
+        time_label,
+        "  ".join(
+            [
+                "{}: {:.3f}".format(field, getattr(engine.state, engine_attr)[field])
+                for field in fields
+            ]
+        ),
     )
     print(log_str)
 
 
 def _to_log(
-    engine: Engine, fields: List[str], engine_attr: str, epoch_num=None, iter_num=None,
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
 ) -> None:
     """Logs string formatted engine output fields to logfile"""
-    value_dict = getattr(engine.state, engine_attr)
-
-    log_str = "  ".join(
-        ["{}: {:.3f}".format(field, value_dict[field]) for field in fields]
-    )
-    log_str = "Epoch[{:d}], Iter[{:d}] | {}".format(
-        tern(epoch_num, engine.state.epoch),
-        tern(iter_num, engine.state.iteration),
-        log_str,
+    log_str = "{} | {}".format(
+        time_label,
+        "  ".join(
+            [
+                "{}: {:.3f}".format(field, getattr(engine.state, engine_attr)[field])
+                for field in fields
+            ]
+        ),
     )
     engine.logger.info(log_str)
 
 
-def _to_file(engine: Engine, fields: List[str], engine_attr: str) -> None:
+def _to_file_num(
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str
+) -> None:
     """Save engine output fields as separate binary data files"""
-    value_dict = getattr(engine.state, engine_attr)
-
     for field in fields:
         if not field in engine.state.fp:
             engine.state.fp[field] = open("{}.pt".format(field), "wb+")
 
-        engine.state.fp[field].write(struct.pack("f", value_dict[field]))
+        engine.state.fp[field].write(
+            struct.pack("f", getattr(engine.state, engine_attr)[field])
+        )
 
 
-def _to_img(engine: Engine, fields: List[str], engine_attr: str) -> None:
+def _to_file_img(
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str
+) -> None:
     """Save engine output fields as images"""
     value_dict = getattr(engine.state, engine_attr)
 
@@ -89,38 +90,35 @@ def _number_to_visdom(
     vis: Visualizer,
     vis_plot_msgs: List[VisPlot],
     engine_attr: str,
-    x_value: int = None,
+    **kwargs
+    # time_label: int,
 ) -> None:
-    """Save engine output to Visdom server"""
-    value_dict = getattr(engine.state, engine_attr)
-
-    if x_value is None:
-        # TODO: [29]https://github.com/pennpolygons/cv-boilerplate/issues/29
-        # Should support logging epoch, global iteration, etc
-        x_value = (
-            engine.state.epoch_length * engine.state.epoch + engine.state.iteration
-        )
-
+    """Log numeric engine output to Visdom server"""
     for msg in vis_plot_msgs:
         vis.plot(
             msg.plot_key,
             msg.split,
-            msg.title,
-            x_value,
-            value_dict[msg.var_name],
-            x_label=msg.x_label,
-            y_label=msg.y_label,
+            kwargs["time_label"],
+            getattr(engine.state, engine_attr)[msg.var_name],
             env=msg.env,
+            opts=msg.opts,
         )
 
 
 def _image_to_visdom(
-    engine: Engine, vis: Visualizer, vis_img_msgs: List[VisImg], engine_attr: str,
+    engine: Engine,
+    vis: Visualizer,
+    vis_img_msgs: List[VisImg],
+    engine_attr: str,
+    **kwargs
 ) -> None:
-    value_dict = getattr(engine.state, engine_attr)
+    """Log image engine output to Visdom server"""
     for msg in vis_img_msgs:
         vis.plot_img_255(
-            value_dict[msg.var_name], caption=msg.caption, title=msg.title, env=msg.env,
+            msg.img_key,
+            getattr(engine.state, engine_attr)[msg.var_name],
+            env=msg.env,
+            opts=msg.opts,
         )
 
 
@@ -132,9 +130,9 @@ class LOG_OP(Enum):
     # Log as message in log file
     LOG_MESSAGE = _to_log
     # Log to separate file
-    SAVE_IN_DATA_FILE = _to_file
+    SAVE_IN_DATA_FILE = _to_file_num
     # Save image to standalone folder
-    SAVE_IMAGE = _to_img
+    SAVE_IMAGE = _to_file_img
     # Log to visdom
     NUMBER_TO_VISDOM = _number_to_visdom
     # Log image to visdom
