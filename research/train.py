@@ -15,6 +15,8 @@ from utils.visdom_utils import VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
 from utils.LogDirector import LogDirector, EngineStateAttr, LogTimeLabel
 
+from typing import Dict
+
 
 def create_training_loop(
     model: nn.Module, cfg: DictConfig, name: str, device="cpu"
@@ -43,13 +45,13 @@ def create_training_loop(
         loss.backward()
         optimizer.step()
 
-        # Anything you want to log must be returned in this dictionary
+        # Anything you want to log or use to compute something to log must be returned in this dictionary
         update_dict = {
             "nll": loss.item(),
             "nll_2": loss.item() + 0.5,
             "y_pred": y_pred,
+            "x": x,
             "y": y,
-            "im": (inverse_mnist_preprocess(x)[0] * 255).type(torch.uint8).squeeze(),
         }
 
         return update_dict
@@ -108,6 +110,15 @@ def create_evaluation_loop(
     return engine
 
 
+def postprocess_image_to_log(state: Dict):
+    """Sample function to show postprocessing done at log time """
+    state.output["im"] = (
+        (inverse_mnist_preprocess(state.output["x"])[0] * 255)
+        .type(torch.uint8)
+        .squeeze()
+    )
+
+
 ########################################################################
 # Main training loop
 ########################################################################
@@ -143,7 +154,8 @@ def train(cfg: DictConfig) -> None:
         trainer,
         Events.ITERATION_COMPLETED(every=50),
         EngineStateAttr.OUTPUT,
-        [
+        do_before_logging=postprocess_image_to_log,
+        log_operations=[
             (LOG_OP.SAVE_IMAGE, ["im"]),  # Save images to a folder
             (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
             (LOG_OP.SAVE_IN_DATA_FILE, ["nll"],),  # Log fields as separate data files
@@ -185,7 +197,9 @@ def train(cfg: DictConfig) -> None:
         trainer,
         Events.EPOCH_COMPLETED,
         EngineStateAttr.METRICS,
-        [
+        # Run the evaluation loop, then do log operations from the return engine
+        engine_producer=run_evaluator,
+        log_operations=[
             (
                 LOG_OP.LOG_MESSAGE,
                 ["nll", "accuracy",],
@@ -216,8 +230,6 @@ def train(cfg: DictConfig) -> None:
                 ],
             ),
         ],
-        # Run the evaluation loop, then do log operations from the return engine
-        pre_op=run_evaluator,
     )
 
     # Execute training

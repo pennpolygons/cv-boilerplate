@@ -74,18 +74,26 @@ class LogDirector:
         engine: Engine,
         event: Events,
         engine_attr: EngineStateAttr,
-        log_operations: List[Tuple[LOG_OP, LOG_OP_ARGS]],
         log_time_label: LogTimeLabel = LogTimeLabel.CUR_ITER_IN_EPOCH,
-        pre_op: Callable[[Any], Engine] = None,
+        engine_producer: Callable[[Any], Engine] = None,
+        # Function to run before log operations. Mutate engine state output
+        do_before_logging: Callable[[Dict], Any] = None,
+        # The log operations (save-to-file, save-to-visdom, etc.)
+        log_operations: List[Tuple[LOG_OP, LOG_OP_ARGS]] = [],
     ):
         def _do_all_log_operations(engine: Engine):
-            engine_to_log_from = pre_op() if pre_op else engine
+            engine_to_log_from = engine_producer() if engine_producer else engine
+
+            if do_before_logging:
+                do_before_logging(engine_to_log_from.state)
+
             for log_op, op_args in log_operations:
                 if (
                     log_op is LOG_OP.NUMBER_TO_VISDOM
                     or log_op is LOG_OP.IMAGE_TO_VISDOM
                 ):
-                    log_op(
+                    visdom_log_op = log_op
+                    visdom_log_op(
                         engine_to_log_from,
                         self.vis,
                         op_args,
