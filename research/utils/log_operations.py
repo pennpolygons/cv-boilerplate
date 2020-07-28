@@ -1,7 +1,9 @@
 import logging
-import struct, pdb, os
-import numpy as np
+import struct
+import os
 import torch
+
+import numpy as np
 
 from PIL import Image
 from enum import Enum
@@ -40,6 +42,7 @@ def _to_log(
             ]
         ),
     )
+
     engine.logger.info(log_str)
 
 

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from omegaconf import DictConfig
-from ignite.utils import setup_logger
+from ignite.utils import setup_logger, manual_seed
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss
 
@@ -140,6 +140,9 @@ def train(cfg: DictConfig) -> None:
     evaluator = create_evaluation_loop(model, cfg, "evaluator", device=device)
 
     ld = LogDirector(cfg, engines=[trainer, evaluator])
+
+    # Set configuration defined random seed
+    manual_seed(cfg.random_seed)
 
     ########################################################################
     # Logging Callbacks

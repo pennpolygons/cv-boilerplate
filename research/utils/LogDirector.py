@@ -1,7 +1,10 @@
+import logging
+
 from enum import Enum
 from omegaconf import DictConfig
 from ignite.contrib.handlers.tensorboard_logger import *
 from ignite.engine import Engine, Events
+from ignite.utils import setup_logger
 
 from utils.visdom_utils import Visualizer, VisPlot, VisImg
 from utils.log_operations import LOG_OP
@@ -46,8 +49,8 @@ class LogDirector:
     def __init__(self, cfg: DictConfig, engines: List[Engine] = None):
         # TODO: Set up a Tensorboard contrib.handler
         self.tb_writer = None
-
         self.registered_engines = {}
+        self.log_file = cfg.files.log_file
 
         # Spin up Visdom server
         self.vis = Visualizer(cfg)
@@ -60,9 +63,14 @@ class LogDirector:
         engine.state.vis = self.vis
 
     def register_engines(self, engines: List[Engine]) -> None:
+        print("Ladies and gentlemen... start your engines!")
         for eng in engines:
             eng.add_event_handler(Events.STARTED, self.startup_engine)
             self.registered_engines[eng.logger.name] = eng
+
+            eng.logger = setup_logger(
+                name=eng.logger.name, level=logging.INFO, filepath=self.log_file
+            )
 
     def print_event_handlers(self):
         # TODO: Should pretty print all the event handlers

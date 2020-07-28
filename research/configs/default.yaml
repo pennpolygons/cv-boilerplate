@@ -6,6 +6,10 @@ defaults:
 dirs:
   data: ./data
 
+# Files
+files:
+  log_file: ${hydra:job.name}.log
+
 random_seed: 26
 data_loader_workers: 4
 mode:
