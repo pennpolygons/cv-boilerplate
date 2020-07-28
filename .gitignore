@@ -111,3 +111,6 @@ ENV/
 # Papers
 *.pdf
 *.pptx
+
+# For the Github README
+!/docs/*.gif
