@@ -11,7 +11,17 @@ cd cv-boilerplate
 pip install -e .
 ```
 
-## Building Blocks & Choices
+# Demo
+
+```
+python research/train.py 
+```
+
+- Visdom (in browser): __localhost:8000__
+- Output log file, images, data files, hydra logs, Visdom logs: `\outputs` 
+
+
+# Building Blocks & Choices
 
 This project is a collection of principled choices to make CV research easier. We prioritize using tools that minimize researcher engineering work, help keep the codebase _uncluttered_, and make research easy to distribute and reproduce.
 
