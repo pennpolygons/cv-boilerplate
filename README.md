@@ -1,5 +1,9 @@
 # cv-boilerplate
+
+![](docs/CVB.gif)
+
 Open source boilerplate for computer vision research. We solve small problems related to project management, experiment management, code styling, and model training so you can get back to research!
+
 
 ![License](https://img.shields.io/github/license/pennpolygons/cv-boilerplate)
 
