@@ -14,7 +14,7 @@ from utils.visdom_utils import Visualizer, VisPlot, VisImg
 
 
 def _to_stdout(
-    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None
 ) -> None:
     """Prints string formatted engine output fields to stdout"""
     log_str = "{} | {}".format(
@@ -30,7 +30,7 @@ def _to_stdout(
 
 
 def _to_log(
-    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None,
+    engine: Engine, fields: List[str], engine_attr: str, time_label: str = None
 ) -> None:
     """Logs string formatted engine output fields to logfile"""
     log_str = "{} | {}".format(

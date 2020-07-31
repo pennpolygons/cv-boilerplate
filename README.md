@@ -9,10 +9,20 @@ Open source boilerplate for computer vision research. We solve small problems re
 
 # Installation
 
+## Standard
+
 ```
 git clone https://github.com/pennpolygons/cv-boilerplate.git
 cd cv-boilerplate
-pip install -e .
+make init
+```
+
+## Anaconda
+
+```
+git clone https://github.com/pennpolygons/cv-boilerplate.git
+cd cv-boilerplate
+make init-conda
 ```
 
 # Demo
