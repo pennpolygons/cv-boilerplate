@@ -12,7 +12,7 @@ from omegaconf import DictConfig
 from visdom import server, Visdom
 
 
-matplotlib.use("tkagg")
+#matplotlib.use("tkagg")
 
 
 @hydra.main(config_path="../configs", config_name="default.yaml")
@@ -129,6 +129,75 @@ class Visualizer:
                 update="append",
             )
 
+"""
+    def plot_line(
+        self,
+        plot_key: str,
+        split_name: str,
+        x: int,
+        y: int,
+        env: str = None,
+        opts: Dict = None,
+    ):
+        """Visdom plot line data. e denotes the option to have a new 
+        window for every time you call plot_line"""
+
+        if plot_key == "e":
+            plot_key = "e" + str(self.counter)
+            self.counter = self.counter + 1
+
+        if plot_key not in self.plots:
+
+            if y.shape[0] == 2:
+                for i in range(y.shape[0]):
+                    if i == 0:
+                        self.plots[plot_key] = self.vis.line(
+                            X=x, Y=y[i], env=env, opts={**opts},
+                        )
+                    else:
+                        self.vis.line(
+                            X=x,
+                            Y=y[i],
+                            env=env,
+                            name=split_name,
+                            update="append",
+                            win=self.plots[plot_key],
+                        )
+
+            elif y.shape[0] == 1:
+                self.plots[plot_key] = self.vis.line(
+                    X=x, Y=y, env=env, opts={**opts, "legend": [split_name]},
+                )
+            else:
+                print(
+                    "Error: you are not supposed to have more than 3 dimensions here."
+                )
+
+        else:
+
+            if y.shape[0] == 2:
+                for i in range(y.shape[0]):
+                    if i == 0:
+                        win = self.vis.line(
+                            X=x, Y=y[i], env=env, opts={**opts, "legend": [split_name]},
+                        )
+                    else:
+                        self.vis.line(
+                            X=x,
+                            Y=y[i],
+                            env=env,
+                            name=split_name,
+                            update="append",
+                            win=win,
+                        )
+            elif y.shape[0] == 1:
+                win = self.vis.line(
+                    X=x, Y=y, env=env, opts={**opts, "legend": [split_name]},
+                )
+            else:
+                print(
+                    "Error: you are not supposed to have more than 3 dimensions here."
+                )"""
 
 if __name__ == "__main__":
     make_visdom()
