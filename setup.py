@@ -11,7 +11,7 @@ DESCRIPTION = "My short description for my research project."
 URL = "https://github.com/pennpolygons/cv-boilerplate"
 EMAIL = "jane@institution.com"
 AUTHOR = "Jane Doe"
-REQUIRES_PYTHON = ">=3.5.0"
+REQUIRES_PYTHON = ">=3.6.0"
 VERSION = "0.1.0"
 PACKAGES = ["research"]
 

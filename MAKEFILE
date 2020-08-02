@@ -4,7 +4,7 @@ init:
 	pip install -e .
 
 init-conda:
-	yes | conda create --name cvb python=3.5 ;\
+	yes | conda create --name cvb python=3.6 ;\
 	source activate cvb ;\
 	pip install -e .
 
