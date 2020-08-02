@@ -2,7 +2,6 @@ import logging
 import hydra
 import torch
 import torch.nn as nn
-import pdb
 
 from omegaconf import DictConfig
 from ignite.utils import setup_logger, manual_seed
@@ -142,7 +141,6 @@ def train(cfg: DictConfig) -> None:
 
 
     ld = LogDirector(cfg, engines=[trainer, evaluator])
-    print("here")
 
     # Set configuration defined random seed
     manual_seed(cfg.random_seed)
