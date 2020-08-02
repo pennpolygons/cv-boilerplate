@@ -12,7 +12,7 @@ from omegaconf import DictConfig
 from visdom import server, Visdom
 
 
-#matplotlib.use("tkagg")
+# matplotlib.use("tkagg")
 
 
 @hydra.main(config_path="../configs", config_name="default.yaml")
@@ -117,7 +117,7 @@ class Visualizer:
                 X=np.array([x, x]),
                 Y=np.array([y, y]),
                 env=env,
-                opts={**opts,"legend": [split_name]},
+                opts={**opts, "legend": [split_name]},
             )
         else:
             self.vis.line(
@@ -128,7 +128,6 @@ class Visualizer:
                 name=split_name,
                 update="append",
             )
-
 
     def plot_line(
         self,
@@ -145,11 +144,11 @@ class Visualizer:
             plot_key = "e" + str(self.counter)
             self.counter = self.counter + 1
             if self.counter == 1:
-                opts["title"] = opts["title"]  + str(self.counter)  
-            elif self.counter > 10 :
-                opts["title"] = opts["title"][:-2]  + str(self.counter)
+                opts["title"] = opts["title"] + str(self.counter)
+            elif self.counter > 10:
+                opts["title"] = opts["title"][:-2] + str(self.counter)
             else:
-                opts["title"] = opts["title"][:-1]  + str(self.counter)
+                opts["title"] = opts["title"][:-1] + str(self.counter)
 
         if plot_key not in self.plots:
 
@@ -157,7 +156,7 @@ class Visualizer:
                 for i in range(y.shape[0]):
                     if i == 0:
                         self.plots[plot_key] = self.vis.line(
-                            X=x, Y=y[i], env=env, opts={**opts},
+                            X=x, Y=y[i], env=env, opts={**opts}
                         )
                     else:
                         self.vis.line(
@@ -171,7 +170,7 @@ class Visualizer:
 
             elif y.shape[0] == 1:
                 self.plots[plot_key] = self.vis.line(
-                    X=x, Y=y, env=env, opts={**opts, "legend": [split_name]},
+                    X=x, Y=y, env=env, opts={**opts, "legend": [split_name]}
                 )
             else:
                 print(
@@ -183,7 +182,7 @@ class Visualizer:
                 for i in range(y.shape[0]):
                     if i == 0:
                         win = self.vis.line(
-                            X=x, Y=y[i], env=env, opts={**opts, "legend": [split_name]},
+                            X=x, Y=y[i], env=env, opts={**opts, "legend": [split_name]}
                         )
                     else:
                         self.vis.line(
@@ -196,7 +195,7 @@ class Visualizer:
                         )
             elif y.shape[0] == 1:
                 win = self.vis.line(
-                    X=x, Y=y, env=env, opts={**opts, "legend": [split_name]},
+                    X=x, Y=y, env=env, opts={**opts, "legend": [split_name]}
                 )
             else:
                 print(

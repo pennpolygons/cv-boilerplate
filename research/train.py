@@ -30,7 +30,9 @@ def create_training_loop(
     model.to(device)
 
     # Optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.learning_rate, momentum=0.8)
+    optimizer = torch.optim.SGD(
+        model.parameters(), lr=cfg.mode.train.learning_rate, momentum=0.8
+    )
 
     # Loss
     loss_fn = torch.nn.NLLLoss()
@@ -122,7 +124,7 @@ def create_regression_training_loop(
     model.to(device)
 
     # Optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.learning_rate)
+    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.mode.train.learning_rate)
 
     # Loss
     loss_fn = torch.nn.MSELoss()
@@ -156,7 +158,7 @@ def create_regression_training_loop(
         update_dict = {
             "loss": mse_val,
             "y_pred": y_pred * factor,
-            "ypred_first": [y_hat, y_pred_hat,],
+            "ypred_first": [y_hat, y_pred_hat],
             "y": y * factor,
         }
 
@@ -167,9 +169,7 @@ def create_regression_training_loop(
     # Required to set up logging
     engine.logger = setup_logger(name=name)
 
-    metrics = {
-        "mape": mape_metric,
-    }
+    metrics = {"mape": mape_metric}
 
     for name, metric in metrics.items():
         print("attaching metric:" + name)
@@ -179,7 +179,7 @@ def create_regression_training_loop(
 
 
 def create_regression_evaluation_loop(
-    model: nn.Module, cfg: DictConfig, name: str, device="cpu",
+    model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
     # Loss
@@ -317,7 +317,7 @@ def train(cfg: DictConfig) -> None:
                                 "x_label": "Iters",
                                 "y_label": "nll",
                             },
-                        ),
+                        )
                     ],
                 ),
             ],
@@ -409,7 +409,7 @@ def train(cfg: DictConfig) -> None:
             do_before_logging=postprocess_image_to_log,
             log_operations=[
                 (LOG_OP.SAVE_IMAGE, ["im"]),  # Save images to a folder
-                (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
+                (LOG_OP.LOG_MESSAGE, ["nll"]),  # Log fields as message in logfile
                 (
                     LOG_OP.SAVE_IN_DATA_FILE,
                     ["nll"],
@@ -429,7 +429,7 @@ def train(cfg: DictConfig) -> None:
                                 "fillarea": True,
                             },
                         ),
-                        VisPlot(var_name="nll_2", plot_key="p1", split="nll_2",),
+                        VisPlot(var_name="nll_2", plot_key="p1", split="nll_2"),
                     ],
                 ),
                 (
@@ -461,7 +461,7 @@ def train(cfg: DictConfig) -> None:
             log_operations=[
                 (
                     LOG_OP.LOG_MESSAGE,
-                    ["nll", "accuracy",],
+                    ["nll", "accuracy"],
                 ),  # Log fields as message in logfile
                 (
                     LOG_OP.SAVE_IN_DATA_FILE,

@@ -4,6 +4,7 @@ defaults:
 
 # Directories
 dirs:
+  runtime_cwd: ${hydra:runtime.cwd}
   data: ./data
 
 # Files
@@ -14,12 +15,13 @@ random_seed: 26
 data_loader_workers: 4
 
 example: classification
-learning_rate: 0.0017
+
 
 mode:
   train:
     batch_size: 64
     max_epochs: 3
+    learning_rate: 0.0017
     shuffle: True
   val:
     batch_size: 64

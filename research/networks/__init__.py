@@ -24,7 +24,6 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=-1)
 
 
-
 class MLP(nn.Module):
     def __init__(self):
         super(MLP, self).__init__()
@@ -33,13 +32,14 @@ class MLP(nn.Module):
         self.fc2 = nn.Linear(1000, 500)
         self.dense2_bn = nn.BatchNorm1d(500)
         self.fc3 = nn.Linear(500, 144)
-        self.activation = 'relu'
+        self.activation = "relu"
 
     def forward(self, x):
         theoutput = F.relu(self.fc1(x))
         out = self.fc3(F.relu(self.fc2(theoutput)))
-            
+
         return out
+
 
 # FIXME:
 def get_network(cfg: DictConfig) -> nn.Module:

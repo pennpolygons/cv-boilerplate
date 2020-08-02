@@ -125,7 +125,7 @@ def _vector_to_visdom(
 
         if x_value is None:
 
-            if len(value_dict[msg.var_name]) > 1: 
+            if len(value_dict[msg.var_name]) > 1:
                 x_value = np.arange(len(value_dict[msg.var_name][0]))
             else:
                 x_value = np.arange(len(value_dict[msg.var_name]))
@@ -145,7 +145,7 @@ def _image_to_visdom(
     vis: Visualizer,
     vis_img_msgs: List[VisImg],
     engine_attr: str,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log image engine output to Visdom server"""
     for msg in vis_img_msgs:

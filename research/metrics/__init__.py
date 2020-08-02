@@ -28,7 +28,6 @@ class Mape(Metric):
         errors = torch.abs(y_pred - y.view_as(y_pred))
         errors_divided = errors / y.view_as(y_pred)
 
-
         self._num_examples += torch.sum(y > 0.0).item()
         self._sum_percentages += torch.sum(errors_divided[y > 0.0]).item()
 
