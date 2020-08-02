@@ -2,6 +2,7 @@ import logging
 import struct
 import os
 import torch
+import pdb
 
 import numpy as np
 
@@ -107,7 +108,7 @@ def _number_to_visdom(
             opts=msg.opts,
         )
 
-"""
+
 def _vector_to_visdom(
     engine: Engine,
     vis: Visualizer,
@@ -120,11 +121,14 @@ def _vector_to_visdom(
     """Save engine output to Visdom server"""
     value_dict = getattr(engine.state, engine_attr)
 
-    if x_value is None:
-
-        x_value = np.arange(len(value_dict[msg.var_name]))
-
     for msg in vis_plot_msgs:
+
+        if x_value is None:
+
+            if len(value_dict[msg.var_name]) > 1: 
+                x_value = np.arange(len(value_dict[msg.var_name][0]))
+            else:
+                x_value = np.arange(len(value_dict[msg.var_name]))
 
         vis.plot_line(
             msg.plot_key,
@@ -133,7 +137,7 @@ def _vector_to_visdom(
             value_dict[msg.var_name],
             env=msg.env,
             opts=msg.opts,
-        )"""
+        )
 
 
 def _image_to_visdom(
@@ -166,5 +170,7 @@ class LOG_OP(Enum):
     SAVE_IMAGE = _to_file_img
     # Log to visdom
     NUMBER_TO_VISDOM = _number_to_visdom
+    # Log vector to visdom
+    VECTOR_TO_VISDOM = _vector_to_visdom
     # Log image to visdom
     IMAGE_TO_VISDOM = _image_to_visdom

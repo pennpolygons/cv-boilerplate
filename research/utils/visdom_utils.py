@@ -117,7 +117,7 @@ class Visualizer:
                 X=np.array([x, x]),
                 Y=np.array([y, y]),
                 env=env,
-                opts={**opts, "legend": [split_name]},
+                opts={**opts,"legend": [split_name]},
             )
         else:
             self.vis.line(
@@ -129,7 +129,7 @@ class Visualizer:
                 update="append",
             )
 
-"""
+
     def plot_line(
         self,
         plot_key: str,
@@ -139,12 +139,17 @@ class Visualizer:
         env: str = None,
         opts: Dict = None,
     ):
-        """Visdom plot line data. e denotes the option to have a new 
-        window for every time you call plot_line"""
+        """Visdom plot line data"""
 
         if plot_key == "e":
             plot_key = "e" + str(self.counter)
             self.counter = self.counter + 1
+            if self.counter == 1:
+                opts["title"] = opts["title"]  + str(self.counter)  
+            elif self.counter > 10 :
+                opts["title"] = opts["title"][:-2]  + str(self.counter)
+            else:
+                opts["title"] = opts["title"][:-1]  + str(self.counter)
 
         if plot_key not in self.plots:
 
@@ -172,7 +177,6 @@ class Visualizer:
                 print(
                     "Error: you are not supposed to have more than 3 dimensions here."
                 )
-
         else:
 
             if y.shape[0] == 2:
@@ -197,7 +201,8 @@ class Visualizer:
             else:
                 print(
                     "Error: you are not supposed to have more than 3 dimensions here."
-                )"""
+                )
+
 
 if __name__ == "__main__":
     make_visdom()
