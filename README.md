@@ -6,24 +6,48 @@ Open source boilerplate for computer vision research. We solve small problems re
 
 
 ![License](https://img.shields.io/github/license/pennpolygons/cv-boilerplate)
+[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
+
 
 # Installation
+
+## Standard
 
 ```
 git clone https://github.com/pennpolygons/cv-boilerplate.git
 cd cv-boilerplate
-pip install -e .
+make init
+```
+
+## Anaconda
+
+```
+git clone https://github.com/pennpolygons/cv-boilerplate.git
+cd cv-boilerplate
+make init-conda
 ```
 
 # Demo
+
+By default training uses: `/research/configs/default.yaml`
+
+Training outputs:
+- Visdom (in browser): __localhost:8000__
+- Output log file, images, data files, hydra logs, Visdom logs: `/outputs` 
+
+## Example: train using default config
 
 ```
 python research/train.py 
 ```
 
-- Visdom (in browser): __localhost:8000__
-- Output log file, images, data files, hydra logs, Visdom logs: `\outputs` 
+## Example: train using Hydra to modify default config at runtime
 
+```
+python research/train.py mode.train.max_epochs=1
+```
 
 # Building Blocks & Choices
 

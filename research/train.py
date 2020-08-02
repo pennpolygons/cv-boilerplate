@@ -161,8 +161,8 @@ def train(cfg: DictConfig) -> None:
         do_before_logging=postprocess_image_to_log,
         log_operations=[
             (LOG_OP.SAVE_IMAGE, ["im"]),  # Save images to a folder
-            (LOG_OP.LOG_MESSAGE, ["nll"],),  # Log fields as message in logfile
-            (LOG_OP.SAVE_IN_DATA_FILE, ["nll"],),  # Log fields as separate data files
+            (LOG_OP.LOG_MESSAGE, ["nll"]),  # Log fields as message in logfile
+            (LOG_OP.SAVE_IN_DATA_FILE, ["nll"]),  # Log fields as separate data files
             (
                 LOG_OP.NUMBER_TO_VISDOM,
                 [
@@ -174,7 +174,7 @@ def train(cfg: DictConfig) -> None:
                         # Any opts that Visdom supports
                         opts={"title": "Plot 1", "xlabel": "Iters", "fillarea": True},
                     ),
-                    VisPlot(var_name="nll_2", plot_key="p1", split="nll_2",),
+                    VisPlot(var_name="nll_2", plot_key="p1", split="nll_2"),
                 ],
             ),
             (
@@ -206,7 +206,7 @@ def train(cfg: DictConfig) -> None:
         log_operations=[
             (
                 LOG_OP.LOG_MESSAGE,
-                ["nll", "accuracy",],
+                ["nll", "accuracy"],
             ),  # Log fields as message in logfile
             (
                 LOG_OP.SAVE_IN_DATA_FILE,

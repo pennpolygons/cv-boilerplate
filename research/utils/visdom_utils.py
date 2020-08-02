@@ -86,7 +86,7 @@ class Visualizer:
         )
 
     def plot_img_255(
-        self, img_key: str, img: np.ndarray, env: str = None, opts: Dict = None,
+        self, img_key: str, img: np.ndarray, env: str = None, opts: Dict = None
     ):
         """Visdom plot a single image (channels-first CxHxW)"""
         self.vis.image(img, win=img_key, opts=opts, env=env)
