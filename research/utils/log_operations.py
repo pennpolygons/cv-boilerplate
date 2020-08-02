@@ -107,6 +107,34 @@ def _number_to_visdom(
             opts=msg.opts,
         )
 
+"""
+def _vector_to_visdom(
+    engine: Engine,
+    vis: Visualizer,
+    vis_plot_msgs: List[VisPlot],
+    engine_attr: str,
+    x_value: int = None,
+    epoch_num: int = None,
+    **kwargs,
+) -> None:
+    """Save engine output to Visdom server"""
+    value_dict = getattr(engine.state, engine_attr)
+
+    if x_value is None:
+
+        x_value = np.arange(len(value_dict[msg.var_name]))
+
+    for msg in vis_plot_msgs:
+
+        vis.plot_line(
+            msg.plot_key,
+            msg.split,
+            x_value,
+            value_dict[msg.var_name],
+            env=msg.env,
+            opts=msg.opts,
+        )"""
+
 
 def _image_to_visdom(
     engine: Engine,
