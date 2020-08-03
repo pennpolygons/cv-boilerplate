@@ -1,2 +1,3 @@
 backbone:
   backbone_name: resnet50
+  learning_rate: 0.01

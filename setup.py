@@ -25,6 +25,7 @@ REQUIRED = [
     "torch>=1.5.0",
     "pytorch-ignite>=0.3.0",
     "torchvision>=0.6.0",
+    "pandas>=1.1.0",
 ]
 
 # What packages are optional?

@@ -99,6 +99,7 @@ class LogDirector:
                 if (
                     log_op is LOG_OP.NUMBER_TO_VISDOM
                     or log_op is LOG_OP.IMAGE_TO_VISDOM
+                    or log_op is LOG_OP.VECTOR_TO_VISDOM
                 ):
                     visdom_log_op = log_op
                     visdom_log_op(

@@ -3,54 +3,94 @@ import os
 import torchvision
 
 from omegaconf import DictConfig
+import torch
 from torch.utils.data import DataLoader
+from torch.autograd import Variable
+import torch.utils.data as utils_data
 from typing import Tuple
 from torchvision.transforms import Compose, ToTensor, Normalize
+import pandas as pd
+import numpy as np
 
 
 def get_dataloaders(
-    cfg: DictConfig, num_workers: int = 4
+    cfg: DictConfig, num_workers: int = 4, dataset_name: str = "mnist"
 ) -> Tuple[DataLoader, DataLoader]:
     """Return training and validation dataloaders"""
 
     ##################################################################
     # Change this. Demo dataset is MNIST
     ##################################################################
-    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+    if dataset_name == "mnist":
+        data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
-    dataset = torchvision.datasets.MNIST(
-        os.path.join(hydra.utils.get_original_cwd(), cfg.dirs.data),
-        download=True,
-        transform=data_transform,
-    )
+        dataset = torchvision.datasets.MNIST(
+            os.path.join(hydra.utils.get_original_cwd(), cfg.dirs.data),
+            download=True,
+            transform=data_transform,
+        )
 
-    train_dataloader = DataLoader(
-        dataset,
-        batch_size=cfg.mode.train.batch_size,
-        shuffle=cfg.mode.train.shuffle,
-        num_workers=num_workers,
-    )
+        train_dataloader = DataLoader(
+            dataset,
+            batch_size=cfg.mode.train.batch_size,
+            shuffle=cfg.mode.train.shuffle,
+            num_workers=num_workers,
+        )
 
-    val_dataloader = DataLoader(
-        dataset,
-        batch_size=cfg.mode.val.batch_size,
-        shuffle=cfg.mode.val.shuffle,
-        num_workers=num_workers,
-    )
+        val_dataloader = DataLoader(
+            dataset,
+            batch_size=cfg.mode.val.batch_size,
+            shuffle=cfg.mode.val.shuffle,
+            num_workers=num_workers,
+        )
+
+    elif dataset_name == "reunion":
+
+        (
+            list_of_training_inputs,
+            training_target_df,
+            list_of_testing_inputs,
+            testing_target_df,
+        ) = process_uni_data(cfg)
+
+        inputs_train = Variable(torch.FloatTensor(list_of_training_inputs))
+        targets_train = Variable(torch.FloatTensor(training_target_df))
+        inputs_test = Variable(torch.FloatTensor(list_of_testing_inputs))
+        targets_test = Variable(torch.FloatTensor(testing_target_df))
+
+        training_samples = utils_data.TensorDataset(inputs_train, targets_train)
+
+        train_dataloader = utils_data.DataLoader(
+            training_samples, batch_size=200, drop_last=False, shuffle=False
+        )
+
+        validation_samples = utils_data.TensorDataset(inputs_test, targets_test)
+
+        val_dataloader = utils_data.DataLoader(
+            validation_samples, batch_size=200, drop_last=False, shuffle=False
+        )
 
     return train_dataloader, val_dataloader
 
 
-def get_data_from_csv():
+def get_data_from_csv(cfg: DictConfig):
 
     list_of_dfs = []
     for csv in os.listdir(
-        "../../../../dataset/production_data/Consommation_universite-reunion"
+        os.path.join(
+            cfg.dirs.runtime_cwd,
+            "research/dataset/production_data/Consommation_universite-reunion",
+        )
+        # "research/dataset/production_data/Consommation_universite-reunion"
     ):
 
         df = pd.read_csv(
-            "../../../../dataset/production_data/Consommation_universite-reunion/"
-            + csv,
+            os.path.join(
+                cfg.dirs.runtime_cwd,
+                "research/dataset/production_data/Consommation_universite-reunion",
+                csv,
+            ),
+            # "research/dataset/production_data/Consommation_universite-reunion/" + csv,
             engine="python",
             sep=";",
         )
@@ -81,9 +121,9 @@ def get_data_from_csv():
     return all_data_ten, all_data_ten_avg
 
 
-def process_uni_data():
+def process_uni_data(cfg: DictConfig):
 
-    all_data_ten, all_data_ten_avg = get_data_from_csv()
+    all_data_ten, all_data_ten_avg = get_data_from_csv(cfg)
 
     list_of_input = []
     list_of_output = []
@@ -120,39 +160,9 @@ def process_uni_data():
     training_target_df = target_vals[:541] / 1777.0
     testing_target_df = target_vals[541:] / 1777.0
 
-    
     return (
         training_input_df.reshape(training_input_df.shape[0], -1),
         training_target_df,
         testing_input_df.reshape(testing_input_df.shape[0], -1),
         testing_target_df,
     )
-
-def get_dataloaders_regression(cfg, num_workers=1):
-
-    (
-        list_of_training_inputs,
-        training_target_df,
-        list_of_testing_inputs,
-        testing_target_df,
-    ) = process_uni_data()
-
-    inputs_train = Variable(torch.FloatTensor(list_of_training_inputs))
-    targets_train = Variable(torch.FloatTensor(training_target_df))
-    inputs_test = Variable(torch.FloatTensor(list_of_testing_inputs))
-    targets_test = Variable(torch.FloatTensor(testing_target_df))
-
-    training_samples = utils_data.TensorDataset(inputs_train, targets_train)
-
-    data_loader_trn = utils_data.DataLoader(
-        training_samples, batch_size=200, drop_last=False, shuffle=False
-    )
-
-    validation_samples = utils_data.TensorDataset(inputs_test, targets_test)
-
-    data_loader_val = utils_data.DataLoader(
-        validation_samples, batch_size=200, drop_last=False, shuffle=False
-    )
-
-    return data_loader_trn, data_loader_val
-

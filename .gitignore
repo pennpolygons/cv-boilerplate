@@ -1,5 +1,6 @@
 # Hydra Experiment Logging
-outputs
+**/outputs
+**/multirun
 
 # data
 data
