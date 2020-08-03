@@ -212,7 +212,7 @@ def create_regression_evaluation_loop(
             "y": y / factor,
             "y_pred_times_factor": y_pred,
             "y_times_factor": y,
-            "ypred_first": np.array([y[0], y_pred[0]]),
+            "ypred_first": np.vstack([y[0], y_pred[0]]),
         }
 
         return infer_dict

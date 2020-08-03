@@ -124,7 +124,6 @@ def _vector_to_visdom(
     for msg in vis_plot_msgs:
 
         if x_value is None:
-
             if len(value_dict[msg.var_name]) > 1:
                 x_value = np.arange(len(value_dict[msg.var_name][0]))
             else:
