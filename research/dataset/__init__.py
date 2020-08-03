@@ -79,7 +79,7 @@ def get_data_from_csv(cfg: DictConfig):
     for csv in os.listdir(
         os.path.join(
             cfg.dirs.runtime_cwd,
-            "research/dataset/production_data/Consommation_universite-reunion",
+            "../research/dataset/production_data/Consommation_universite-reunion",
         )
         # "research/dataset/production_data/Consommation_universite-reunion"
     ):
@@ -87,7 +87,7 @@ def get_data_from_csv(cfg: DictConfig):
         df = pd.read_csv(
             os.path.join(
                 cfg.dirs.runtime_cwd,
-                "research/dataset/production_data/Consommation_universite-reunion",
+                "../research/dataset/production_data/Consommation_universite-reunion",
                 csv,
             ),
             # "research/dataset/production_data/Consommation_universite-reunion/" + csv,
