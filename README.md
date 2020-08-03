@@ -29,7 +29,7 @@ cd cv-boilerplate
 make init-conda
 ```
 
-# Demo
+# Demos
 
 By default training uses: `/research/configs/default.yaml`
 
@@ -37,16 +37,32 @@ Training outputs:
 - Visdom (in browser): __localhost:8000__
 - Output log file, images, data files, hydra logs, Visdom logs: `/outputs` 
 
-## Example: train using default config
+## Example: Regression
+
+#### Train using default config
 
 ```
-python research/train.py 
+python research/train.py example=regression
 ```
 
-## Example: train using Hydra to modify default config at runtime
+#### Train using Hydra to modify default config at runtime
 
 ```
-python research/train.py mode.train.max_epochs=1
+python research/train.py mode.train.max_epochs=1 example=regression
+```
+
+## Example: Classification
+
+#### Train using default config
+
+```
+python research/train.py example=classification
+```
+
+#### Train using Hydra to modify default config at runtime
+
+```
+python research/train.py mode.train.max_epochs=1 example=classification
 ```
 
 # Building Blocks & Choices
