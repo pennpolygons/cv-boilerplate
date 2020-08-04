@@ -5,7 +5,7 @@ init:
 
 init-conda:
 	yes | conda create --name cvb python=3.6 ;\
-	source activate cvb ;\
+	conda activate cvb ;\
 	pip install -e .
 
 lint:
