@@ -152,7 +152,7 @@ class Visualizer:
 
         if plot_key not in self.plots:
 
-            if y.shape[0] == 2:
+            if y.shape[0] >= 2:
                 for i in range(y.shape[0]):
                     if i == 0:
                         self.plots[plot_key] = self.vis.line(
@@ -172,13 +172,10 @@ class Visualizer:
                 self.plots[plot_key] = self.vis.line(
                     X=x, Y=y, env=env, opts={**opts, "legend": [split_name]}
                 )
-            else:
-                print(
-                    "Error: you are not supposed to have more than 3 dimensions here."
-                )
+
         else:
 
-            if y.shape[0] == 2:
+            if y.shape[0] >= 2:
                 for i in range(y.shape[0]):
                     if i == 0:
                         win = self.vis.line(
@@ -196,10 +193,6 @@ class Visualizer:
             elif y.shape[0] == 1:
                 win = self.vis.line(
                     X=x, Y=y, env=env, opts={**opts, "legend": [split_name]}
-                )
-            else:
-                print(
-                    "Error: you are not supposed to have more than 3 dimensions here."
                 )
 
 
