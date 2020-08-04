@@ -1,10 +1,11 @@
 import logging
 import hydra
-import numpy as np
 import torch
-import torch.nn as nn
-import pdb
 
+import numpy as np
+import torch.nn as nn
+
+from typing import Dict
 from omegaconf import DictConfig
 from ignite.utils import setup_logger, manual_seed
 from ignite.handlers import Checkpoint, ModelCheckpoint, DiskSaver
@@ -19,10 +20,8 @@ from utils.visdom_utils import VisPlot, VisImg
 from utils.image_utils import inverse_mnist_preprocess
 from utils.LogDirector import LogDirector, EngineStateAttr, LogTimeLabel
 
-from typing import Dict
 
-
-def create_training_loop(
+def create_classification_training_loop(
     model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
@@ -74,7 +73,7 @@ def create_training_loop(
     return engine
 
 
-def create_evaluation_loop(
+def create_classification_evaluation_loop(
     model: nn.Module, cfg: DictConfig, name: str, device="cpu"
 ) -> Engine:
 
@@ -212,7 +211,7 @@ def create_regression_evaluation_loop(
             "y": y / factor,
             "y_pred_times_factor": y_pred,
             "y_times_factor": y,
-            "ypred_first": np.array([y[0], y_pred[0]]),
+            "ypred_first": np.vstack([y[0], y_pred[0]]),
         }
 
         return infer_dict
@@ -260,15 +259,19 @@ def train(cfg: DictConfig) -> None:
     # Model
     model = get_network(cfg)
 
-    # Data Loaders
+    # Data Loaders (select example)
     if cfg.example == "classification":
         train_loader, val_loader = get_dataloaders(
             cfg, num_workers=cfg.data_loader_workers, dataset_name="mnist"
         )
         # Your training loop
-        trainer = create_training_loop(model, cfg, "trainer", device=device)
+        trainer = create_classification_training_loop(
+            model, cfg, "trainer", device=device
+        )
         # Your evaluation loop
-        evaluator = create_evaluation_loop(model, cfg, "evaluator", device=device)
+        evaluator = create_classification_evaluation_loop(
+            model, cfg, "evaluator", device=device
+        )
     else:
         train_loader, val_loader = get_dataloaders(
             cfg, num_workers=cfg.data_loader_workers, dataset_name="reunion"
@@ -292,7 +295,8 @@ def train(cfg: DictConfig) -> None:
     # Helper to run the evaluation loop
     def run_evaluator():
         evaluator.run(val_loader)
-        return evaluator  # NOTE: Must return the engine we want to log from
+        # NOTE: Must return the engine we want to log from
+        return evaluator
 
     if cfg.example == "regression":
 
